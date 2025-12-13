@@ -13,21 +13,37 @@ interface GameTableProps {
 
 const TrumpSelectionModal: React.FC<{ onSelect: (suit: Suit, friends: any[]) => void }> = ({ onSelect }) => {
     const [suit, setSuit] = React.useState<Suit>('S');
-    const [friend1, setFriend1] = React.useState({ rank: 'A', suit: 'H' });
-    const [friend2, setFriend2] = React.useState({ rank: 'A', suit: 'D' });
+    const [friend1, setFriend1] = React.useState({ rank: 'K', suit: 'H' });
+    const [friend2, setFriend2] = React.useState({ rank: 'K', suit: 'D' });
+    const [error, setError] = React.useState('');
+
+    const isAceOfSpades = (friend: { rank: string, suit: string }) => 
+        friend.rank === 'A' && friend.suit === 'S';
 
     const handleSubmit = () => {
+        // Validate: Ace of Spades cannot be a friend
+        if (isAceOfSpades(friend1) || isAceOfSpades(friend2)) {
+            setError('Ace of Spades (A♠) cannot be selected as a friend card!');
+            return;
+        }
+        setError('');
         onSelect(suit, [friend1, friend2]);
     };
 
     return (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg text-black">
+            <div className="bg-white p-6 rounded-lg text-black max-w-md">
                 <h2 className="text-xl font-bold mb-4">Select Trump & Friends</h2>
+                
+                {error && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4">
+                        {error}
+                    </div>
+                )}
                 
                 <div className="mb-4">
                     <label className="block font-bold">Trump Suit</label>
-                    <select value={suit} onChange={e => setSuit(e.target.value as Suit)} className="border p-2 rounded">
+                    <select value={suit} onChange={e => setSuit(e.target.value as Suit)} className="border p-2 rounded w-full">
                         <option value="S">Spades ♠</option>
                         <option value="H">Hearts ♥</option>
                         <option value="C">Clubs ♣</option>
@@ -38,32 +54,79 @@ const TrumpSelectionModal: React.FC<{ onSelect: (suit: Suit, friends: any[]) => 
                 <div className="mb-4">
                     <label className="block font-bold">Friend 1</label>
                     <div className="flex gap-2">
-                        <select value={friend1.rank} onChange={e => setFriend1({...friend1, rank: e.target.value})} className="border p-2 rounded">
-                            {['5','6','7','8','9','10','J','Q','K','A'].map(r => <option key={r} value={r}>{r}</option>)}
+                        <select 
+                            value={friend1.rank} 
+                            onChange={e => setFriend1({...friend1, rank: e.target.value})} 
+                            className={`border p-2 rounded flex-1 ${isAceOfSpades({...friend1, rank: friend1.rank}) ? 'border-red-500 bg-red-50' : ''}`}
+                        >
+                            {['5','6','7','8','9','10','J','Q','K','A'].map(r => (
+                                <option 
+                                    key={r} 
+                                    value={r}
+                                    disabled={r === 'A' && friend1.suit === 'S'}
+                                    className={r === 'A' && friend1.suit === 'S' ? 'text-gray-400' : ''}
+                                >
+                                    {r} {r === 'A' && friend1.suit === 'S' ? '(not allowed)' : ''}
+                                </option>
+                            ))}
                         </select>
-                        <select value={friend1.suit} onChange={e => setFriend1({...friend1, suit: e.target.value})} className="border p-2 rounded">
+                        <select 
+                            value={friend1.suit} 
+                            onChange={e => setFriend1({...friend1, suit: e.target.value})} 
+                            className={`border p-2 rounded ${isAceOfSpades(friend1) ? 'border-red-500 bg-red-50' : ''}`}
+                        >
                             <option value="S">♠</option><option value="H">♥</option><option value="C">♣</option><option value="D">♦</option>
                         </select>
                     </div>
+                    {isAceOfSpades(friend1) && <p className="text-red-500 text-sm mt-1">⚠️ A♠ not allowed</p>}
                 </div>
 
                 <div className="mb-4">
                     <label className="block font-bold">Friend 2</label>
                     <div className="flex gap-2">
-                        <select value={friend2.rank} onChange={e => setFriend2({...friend2, rank: e.target.value})} className="border p-2 rounded">
-                            {['5','6','7','8','9','10','J','Q','K','A'].map(r => <option key={r} value={r}>{r}</option>)}
+                        <select 
+                            value={friend2.rank} 
+                            onChange={e => setFriend2({...friend2, rank: e.target.value})} 
+                            className={`border p-2 rounded flex-1 ${isAceOfSpades({...friend2, rank: friend2.rank}) ? 'border-red-500 bg-red-50' : ''}`}
+                        >
+                            {['5','6','7','8','9','10','J','Q','K','A'].map(r => (
+                                <option 
+                                    key={r} 
+                                    value={r}
+                                    disabled={r === 'A' && friend2.suit === 'S'}
+                                    className={r === 'A' && friend2.suit === 'S' ? 'text-gray-400' : ''}
+                                >
+                                    {r} {r === 'A' && friend2.suit === 'S' ? '(not allowed)' : ''}
+                                </option>
+                            ))}
                         </select>
-                        <select value={friend2.suit} onChange={e => setFriend2({...friend2, suit: e.target.value})} className="border p-2 rounded">
+                        <select 
+                            value={friend2.suit} 
+                            onChange={e => setFriend2({...friend2, suit: e.target.value})} 
+                            className={`border p-2 rounded ${isAceOfSpades(friend2) ? 'border-red-500 bg-red-50' : ''}`}
+                        >
                             <option value="S">♠</option><option value="H">♥</option><option value="C">♣</option><option value="D">♦</option>
                         </select>
                     </div>
+                    {isAceOfSpades(friend2) && <p className="text-red-500 text-sm mt-1">⚠️ A♠ not allowed</p>}
                 </div>
 
-                <button onClick={handleSubmit} className="bg-green-600 text-white px-4 py-2 rounded w-full">Confirm</button>
+                <button 
+                    onClick={handleSubmit} 
+                    className={`px-4 py-2 rounded w-full font-bold ${
+                        isAceOfSpades(friend1) || isAceOfSpades(friend2) 
+                            ? 'bg-gray-400 cursor-not-allowed' 
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                    disabled={isAceOfSpades(friend1) || isAceOfSpades(friend2)}
+                >
+                    Confirm
+                </button>
             </div>
         </div>
     );
 };
+
 
 export const GameTable: React.FC<GameTableProps> = ({ gameState, playerId, onBid, onSelectTrump, onPlayCard, onStartGame }) => {
   const me = gameState.players.find(p => p.id === playerId);
@@ -166,8 +229,44 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, playerId, onBid
                 {/* Note: I need to pass onStartGame prop or handle it via socket in App */}
             </div>
         )}
+
+        {/* Game Ended Results */}
+        {gameState.phase === 'ended' && (
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+                <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-xl shadow-2xl text-white max-w-lg text-center border border-gray-700">
+                    <h2 className={`text-4xl font-bold mb-6 ${gameState.scores.callerWins ? 'text-yellow-400' : 'text-blue-400'}`}>
+                        {gameState.scores.callerWins ? '🎉 Caller Team Wins!' : '🛡️ Defense Wins!'}
+                    </h2>
+                    
+                    <div className="space-y-4 text-xl mb-6">
+                        <div className="flex justify-between items-center bg-yellow-900/30 p-3 rounded-lg border border-yellow-700/50">
+                            <span className="font-bold text-yellow-300">Caller Team:</span>
+                            <span className="text-2xl font-bold">{gameState.scores.callerTeam} pts</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-blue-900/30 p-3 rounded-lg border border-blue-700/50">
+                            <span className="font-bold text-blue-300">Defense Team:</span>
+                            <span className="text-2xl font-bold">{gameState.scores.defenseTeam} pts</span>
+                        </div>
+                        <div className="text-gray-400 text-lg pt-2 border-t border-gray-600">
+                            Bid was: <span className="font-bold text-white">{gameState.scores.bid}</span>
+                        </div>
+                    </div>
+                    
+                    <div className="text-sm text-gray-400 mb-4">
+                        Caller: {gameState.players.find(p => p.id === gameState.callerId)?.name}
+                    </div>
+                    
+                    <button 
+                        onClick={onStartGame} 
+                        className="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-3 rounded-lg font-bold text-lg hover:from-green-600 hover:to-green-700 transition-all shadow-lg"
+                    >
+                        Play Again
+                    </button>
+                </div>
+            </div>
+        )}
       </div>
-      <div className="absolute bottom-2 right-2 text-xs text-white/30">v1.2</div>
+      <div className="absolute bottom-2 right-2 text-xs text-white/30">v1.3</div>
     </div>
   );
 };

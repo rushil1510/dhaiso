@@ -51,21 +51,39 @@ export class Game {
         this.broadcastState();
     }
 
+    private resetGameState() {
+        // Reset all player state
+        this.players.forEach(p => {
+            p.hand = [];
+            p.hasPassed = false;
+            p.pointsWon = 0;
+            p.team = 'unknown';
+        });
+
+        // Reset game state
+        this.gameState = {
+            ...this.getInitialState(),
+            players: this.gameState.players // Keep player list
+        };
+        this.currentTurnIndex = 0;
+    }
+
     startGame() {
         if (this.players.length !== 5) return;
+
+        this.resetGameState();
         this.deck.reset();
         this.deck.shuffle();
 
         // Deal 5 cards to each
         this.players.forEach(p => {
-            p.hand = [];
             p.addCards(this.deck.deal(5));
         });
 
-        // Check for "No Face Card" rule
+        // Check for "No Face Card" rule on initial deal
         const needsReshuffle = this.players.some(p => !p.hasFaceCard());
         if (needsReshuffle) {
-            // Reshuffle logic
+            // Reshuffle logic - recursive call will reset state
             this.startGame();
             return;
         }
@@ -92,8 +110,7 @@ export class Game {
                 return;
             }
             if (activeBidders.length === 0) {
-                // Everyone passed? Reset or force dealer?
-                // For now, restart game
+                // Everyone passed? Restart game
                 this.startGame();
                 return;
             }
@@ -117,25 +134,72 @@ export class Game {
         if (this.gameState.phase !== 'trump_selection') return;
         if (playerId !== this.gameState.callerId) return;
 
+        // Validate: Ace of Spades cannot be a friend card
+        const isAceOfSpades = (card: { rank: string, suit: Suit }) =>
+            card.rank === 'A' && card.suit === 'S';
+
+        if (friends.some(isAceOfSpades)) {
+            this.io.to(playerId).emit('ERROR', 'Ace of Spades cannot be selected as a friend card');
+            return;
+        }
+
         this.gameState.trumpSuit = suit;
-        // Validate friends (cannot be Ace of Spades)
-        // Friends are just card definitions, we find who has them later or when played.
-        // actually, we need to store them to check later.
         this.gameState.friendCards = friends.map(f => new Card(f.suit as Suit, f.rank as any));
 
         // Deal remaining cards
-        this.dealRemainingCards();
+        const dealSuccess = this.dealRemainingCards();
+        if (!dealSuccess) {
+            // Game was restarted due to no face cards
+            return;
+        }
+
+        // Assign teams based on who holds friend cards
+        this.assignTeams();
 
         this.gameState.phase = 'playing';
         this.currentTurnIndex = this.players.findIndex(p => p.id === this.gameState.callerId); // Caller starts
+        this.gameState.currentTurn = this.currentTurnIndex;
         this.broadcastState();
     }
 
-    private dealRemainingCards() {
-        // Deal 3 more to each
+    private dealRemainingCards(): boolean {
+        // Deal 3 more to each (total 8 cards per player)
         this.players.forEach(p => {
             p.addCards(this.deck.deal(3));
         });
+
+        // Check for "No Face Card" rule after full deal
+        const needsReshuffle = this.players.some(p => !p.hasFaceCard());
+        if (needsReshuffle) {
+            // Notify players and restart
+            this.io.emit('GAME_MESSAGE', 'A player has no face cards. Reshuffling...');
+            setTimeout(() => this.startGame(), 2000);
+            return false;
+        }
+        return true;
+    }
+
+    private assignTeams() {
+        // Reset all teams to defense first
+        this.players.forEach(p => p.team = 'defense');
+
+        // Caller is on caller team
+        const caller = this.players.find(p => p.id === this.gameState.callerId);
+        if (caller) {
+            caller.team = 'caller';
+        }
+
+        // Find players holding friend cards - they are on caller's team
+        for (const friendCard of this.gameState.friendCards) {
+            for (const player of this.players) {
+                const hasCard = player.hand.some(c =>
+                    c.suit === friendCard.suit && c.rank === friendCard.rank
+                );
+                if (hasCard) {
+                    player.team = 'caller';
+                }
+            }
+        }
     }
 
     private advanceTurn() {
@@ -143,16 +207,19 @@ export class Game {
         this.broadcastState();
     }
 
-    handlePlayCard(playerId: string, card: Card) {
+    handlePlayCard(playerId: string, cardData: { suit: Suit, rank: string }) {
         if (this.gameState.phase !== 'playing') return;
         const playerIndex = this.players.findIndex(p => p.id === playerId);
         if (playerIndex !== this.currentTurnIndex) return;
 
         const player = this.players[playerIndex];
 
+        // Convert incoming card object to proper Card instance for comparison
+        const card = new Card(cardData.suit, cardData.rank as any);
+
         // Validate Move
         if (!this.isValidMove(player, card)) {
-            // Emit error to player?
+            this.io.to(playerId).emit('ERROR', 'Invalid move: you must follow suit if possible');
             return;
         }
 
@@ -172,16 +239,20 @@ export class Game {
     }
 
     private isValidMove(player: Player, card: Card): boolean {
-        if (this.gameState.pot.length === 0) return true; // Lead card
+        // First, check if player actually has this card
+        const hasCard = player.hand.some(c => c.suit === card.suit && c.rank === card.rank);
+        if (!hasCard) return false;
+
+        if (this.gameState.pot.length === 0) return true; // Lead card - any card is valid
 
         const leadCard = this.gameState.pot[0].card;
         const leadSuit = leadCard.suit;
 
-        if (card.suit === leadSuit) return true; // Following suit
+        if (card.suit === leadSuit) return true; // Following suit is always valid
 
         if (player.hasSuit(leadSuit)) return false; // Must follow suit if possible
 
-        return true; // Can play anything if void in lead suit
+        return true; // Can play anything (including trump) if void in lead suit
     }
 
     private resolveTrick() {
@@ -194,14 +265,23 @@ export class Game {
             const { playerId, card } = this.gameState.pot[i];
 
             if (card.suit === this.gameState.trumpSuit && bestCard.suit !== this.gameState.trumpSuit) {
-                // Trump trumps non-trump
+                // Trump beats non-trump
                 bestCard = card;
                 winnerId = playerId;
-            } else if (card.suit === bestCard.suit && card.power > bestCard.power) {
-                // Higher card of same suit (trump or lead)
-                bestCard = card;
-                winnerId = playerId;
+            } else if (card.suit === this.gameState.trumpSuit && bestCard.suit === this.gameState.trumpSuit) {
+                // Both are trump - higher power wins
+                if (card.power > bestCard.power) {
+                    bestCard = card;
+                    winnerId = playerId;
+                }
+            } else if (card.suit === leadSuit && bestCard.suit === leadSuit) {
+                // Both following lead suit - higher power wins (only if best isn't trump)
+                if (bestCard.suit !== this.gameState.trumpSuit && card.power > bestCard.power) {
+                    bestCard = card;
+                    winnerId = playerId;
+                }
             }
+            // If card is neither trump nor lead suit, it can't win
         }
 
         // Award points
@@ -209,16 +289,6 @@ export class Game {
         const winner = this.players.find(p => p.id === winnerId);
         if (winner) {
             winner.pointsWon += points;
-
-            // Check for Friends
-            // If winner played a friend card, they are on the caller's team?
-            // Actually, team is determined by who holds the friend cards.
-            // We should check hands at start of game or reveal as they play.
-            // Let's check if any played card was a friend card and mark that player as 'caller' team (if not already).
-            // Wait, the rule is "People in possesion of these 'friends' form a team".
-            // So we should have marked them when cards were dealt? No, we don't know who has them until dealt.
-            // After dealing remaining cards, we can scan hands to assign teams.
-            // Or we can do it lazily. Let's do it after dealing remaining cards.
         }
 
         // Clear pot
@@ -228,21 +298,40 @@ export class Game {
         this.currentTurnIndex = this.players.findIndex(p => p.id === winnerId);
         this.gameState.currentTurn = this.currentTurnIndex;
 
-        // Check if game over (all cards played)
+        // Check if game over (all cards played - 8 tricks = 0 cards remaining)
         if (this.players[0].hand.length === 0) {
             this.endGame();
         } else {
-            // Delay slightly so players can see the trick result?
-            // For now, immediate. Frontend can handle delay.
             this.broadcastState();
         }
     }
 
     private endGame() {
         this.gameState.phase = 'ended';
-        // Calculate scores
-        // Caller team vs Defense
-        // ...
+
+        // Calculate team scores
+        let callerTeamPoints = 0;
+        let defenseTeamPoints = 0;
+
+        for (const player of this.players) {
+            if (player.team === 'caller') {
+                callerTeamPoints += player.pointsWon;
+            } else {
+                defenseTeamPoints += player.pointsWon;
+            }
+        }
+
+        // Determine winner - caller team must meet or exceed their bid
+        const callerWins = callerTeamPoints >= this.gameState.bid;
+
+        // Store results in gameState
+        this.gameState.scores = {
+            callerTeam: callerTeamPoints,
+            defenseTeam: defenseTeamPoints,
+            bid: this.gameState.bid,
+            callerWins: callerWins
+        };
+
         this.broadcastState();
     }
 
@@ -252,8 +341,12 @@ export class Game {
             const state = {
                 ...this.gameState,
                 players: this.players.map(pl => ({
-                    ...pl,
-                    hand: pl.id === p.id ? pl.hand : pl.hand.map(() => null) // Hide other hands
+                    id: pl.id,
+                    name: pl.name,
+                    hand: pl.id === p.id ? pl.hand : pl.hand.map(() => null), // Hide other hands
+                    team: pl.team,
+                    pointsWon: pl.pointsWon,
+                    hasPassed: pl.hasPassed
                 }))
             };
             this.io.to(p.id).emit('GAME_UPDATE', state);

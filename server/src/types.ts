@@ -25,6 +25,11 @@ export interface GameState {
     trumpSuit: Suit | null;
     friendCards: ICard[];
     pot: { playerId: string, card: ICard }[];
-    scores: Record<string, number>;
+    scores: {
+        callerTeam?: number;
+        defenseTeam?: number;
+        bid?: number;
+        callerWins?: boolean;
+    };
     phase: 'lobby' | 'bidding' | 'trump_selection' | 'playing' | 'ended';
 }
