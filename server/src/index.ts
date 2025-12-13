@@ -8,10 +8,45 @@ const app = express();
 app.use(cors());
 
 const httpServer = createServer(app);
+
+// Determine allowed origins based on environment
+const allowedOrigins: (string | RegExp)[] = [
+    "http://localhost:5173", // Local development
+    "http://localhost:3000", // Alternative local
+];
+
+// Add production frontend URL if set
+if (process.env.FRONTEND_URL) {
+    allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
+// Add wildcard for Vercel preview deployments
+if (process.env.NODE_ENV === 'production') {
+    allowedOrigins.push(/\.vercel\.app$/);
+}
+
 const io = new Server(httpServer, {
     cors: {
-        origin: "http://localhost:5173", // Vite default port
-        methods: ["GET", "POST"]
+        origin: (origin, callback) => {
+            // Allow requests with no origin (mobile apps, Postman, etc.)
+            if (!origin) return callback(null, true);
+
+            // Check if origin is in allowed list or matches pattern
+            const isAllowed = allowedOrigins.some(allowed => {
+                if (typeof allowed === 'string') return allowed === origin;
+                if (allowed instanceof RegExp) return allowed.test(origin);
+                return false;
+            });
+
+            if (isAllowed) {
+                callback(null, true);
+            } else {
+                console.log('Blocked origin:', origin);
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
