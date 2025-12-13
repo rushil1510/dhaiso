@@ -4,7 +4,9 @@ import { Lobby } from './components/Lobby';
 import { GameTable } from './components/GameTable';
 import type { GameState, ICard, Suit } from './types';
 
-const socket: Socket = io('http://localhost:3000');
+// Use environment variable for backend URL, fallback to localhost for development
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+const socket: Socket = io(BACKEND_URL);
 
 function App() {
   const [connected, setConnected] = useState(false);
