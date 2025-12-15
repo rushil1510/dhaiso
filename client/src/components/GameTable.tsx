@@ -171,26 +171,32 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, playerId, onBid
             </div>
         </div>
 
-        {/* Other Players - Circular positioning for even distribution */}
+        {/* Other Players - Circular positioning with specific angles */}
         {gameState.players.filter(p => p.id !== playerId).map((player, idx) => {
-            // Calculate circular positions for 4 players evenly distributed
-            // Positions: Top (0°), Right (90°), Bottom (180°), Left (270°)
-            const angles = [0, 90, 180, 270];
+            // Use specified angles for even distribution: 36°, 72°, 108°, 154°
+            // Measured from horizontal axis (0° at right, counter-clockwise)
+            const angles = [36, 72, 108, 154];
             const angle = angles[idx];
             
-            let positionClass = '';
-            if (angle === 0) {
-                positionClass = 'top-8 left-1/2 -translate-x-1/2';
-            } else if (angle === 90) {
-                positionClass = 'right-8 top-1/2 -translate-y-1/2';
-            } else if (angle === 180) {
-                positionClass = 'bottom-32 left-1/2 -translate-x-1/2';
-            } else {
-                positionClass = 'left-8 top-1/2 -translate-y-1/2';
-            }
+            // Convert to radians - no adjustment needed, using horizontal as base
+            const angleRad = angle * (Math.PI / 180);
+            const radiusX = 44; // Horizontal radius percentage
+            const radiusY = 36; // Vertical radius percentage
+            
+            // Calculate x and y positions as percentages
+            const x = 50 + radiusX * Math.cos(angleRad);
+            const y = 50 - radiusY * Math.sin(angleRad); // Negative because CSS y goes down
             
             return (
-                <div key={player.id} className={`absolute p-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl text-white backdrop-blur-md border border-white/20 shadow-2xl flex flex-col items-center gap-1.5 min-w-[130px] ${positionClass} transition-all duration-300 hover:scale-105`}>
+                <div 
+                    key={player.id} 
+                    className="absolute p-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl text-white backdrop-blur-md border border-white/20 shadow-2xl flex flex-col items-center gap-1.5 min-w-[130px] transition-all duration-300 hover:scale-105"
+                    style={{
+                        left: `${x}%`,
+                        top: `${y}%`,
+                        transform: 'translate(-50%, -50%)'
+                    }}
+                >
                     <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-xl font-bold border-3 border-white/30 shadow-lg">
                         {player.name.charAt(0).toUpperCase()}
                     </div>
