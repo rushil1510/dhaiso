@@ -291,19 +291,25 @@ export class Game {
             winner.pointsWon += points;
         }
 
-        // Clear pot
-        this.gameState.pot = [];
+        // Broadcast state with full pot so players can see all cards
+        this.broadcastState();
 
-        // Winner leads next
-        this.currentTurnIndex = this.players.findIndex(p => p.id === winnerId);
-        this.gameState.currentTurn = this.currentTurnIndex;
+        // Wait 5 seconds before clearing pot to let players see the completed trick
+        setTimeout(() => {
+            // Clear pot
+            this.gameState.pot = [];
 
-        // Check if game over (all cards played - 8 tricks = 0 cards remaining)
-        if (this.players[0].hand.length === 0) {
-            this.endGame();
-        } else {
-            this.broadcastState();
-        }
+            // Winner leads next
+            this.currentTurnIndex = this.players.findIndex(p => p.id === winnerId);
+            this.gameState.currentTurn = this.currentTurnIndex;
+
+            // Check if game over (all cards played - 8 tricks = 0 cards remaining)
+            if (this.players[0].hand.length === 0) {
+                this.endGame();
+            } else {
+                this.broadcastState();
+            }
+        }, 5000); // 5 second delay
     }
 
     private endGame() {
@@ -337,16 +343,22 @@ export class Game {
 
     private broadcastState() {
         // Send sanitized state to each player (hide others' hands)
+        // Update gameState.players to match actual players array to fix counter issues
+        const playersData = this.players.map(pl => ({
+            id: pl.id,
+            name: pl.name,
+            hand: pl.hand,
+            team: pl.team,
+            pointsWon: pl.pointsWon,
+            hasPassed: pl.hasPassed
+        }));
+
         this.players.forEach(p => {
             const state = {
                 ...this.gameState,
-                players: this.players.map(pl => ({
-                    id: pl.id,
-                    name: pl.name,
-                    hand: pl.id === p.id ? pl.hand : pl.hand.map(() => null), // Hide other hands
-                    team: pl.team,
-                    pointsWon: pl.pointsWon,
-                    hasPassed: pl.hasPassed
+                players: playersData.map(pl => ({
+                    ...pl,
+                    hand: pl.id === p.id ? pl.hand : pl.hand.map(() => null) // Hide other hands
                 }))
             };
             this.io.to(p.id).emit('GAME_UPDATE', state);
