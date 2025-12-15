@@ -131,20 +131,24 @@ const TrumpSelectionModal: React.FC<{ onSelect: (suit: Suit, friends: any[]) => 
 export const GameTable: React.FC<GameTableProps> = ({ gameState, playerId, onBid, onSelectTrump, onPlayCard, onStartGame }) => {
   const me = gameState.players.find(p => p.id === playerId);
   
-  if (!me) return <div>Loading...</div>;
+  if (!me) return <div className="flex items-center justify-center h-screen text-white font-inter">Loading...</div>;
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-green-900 to-green-800 p-4 font-serif">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-emerald-900 via-green-900 to-teal-900 p-4 font-inter">
       {/* Header Info */}
-      <div className="flex justify-between text-white mb-4 bg-black/30 p-2 rounded-lg backdrop-blur-sm">
-        <div className="flex gap-4">
-            <span className="font-bold">Phase:</span> {gameState.phase}
-            <span className="font-bold ml-4">Bid:</span> {gameState.bid} 
-            <span className="font-bold ml-4">Caller:</span> {gameState.callerId ? gameState.players.find(p => p.id === gameState.callerId)?.name : 'None'}
-            <span className="font-bold ml-4">Trump:</span> {gameState.trumpSuit ? <span className="text-xl">{gameState.trumpSuit}</span> : 'None'}
+      <div className="flex justify-between text-white mb-4 bg-black/40 p-3 rounded-xl backdrop-blur-md border border-white/10 shadow-lg">
+        <div className="flex gap-6 items-center text-sm">
+            <div className="font-semibold"><span className="text-gray-300">Phase:</span> <span className="text-white">{gameState.phase}</span></div>
+            <div className="font-semibold"><span className="text-gray-300">Bid:</span> <span className="text-yellow-300">{gameState.bid}</span></div>
+            <div className="font-semibold"><span className="text-gray-300">Caller:</span> <span className="text-white">{gameState.callerId ? gameState.players.find(p => p.id === gameState.callerId)?.name : 'None'}</span></div>
+            <div className="font-semibold"><span className="text-gray-300">Trump:</span> {gameState.trumpSuit ? <span className="text-2xl">{gameState.trumpSuit}</span> : <span className="text-white">None</span>}</div>
+            {gameState.friendCards && gameState.friendCards.length > 0 && (
+              <div className="font-semibold"><span className="text-gray-300">Friends:</span> {gameState.friendCards.map((card, i) => <span key={i} className="ml-1 text-yellow-300 font-bold">{card.rank}{card.suit}</span>)}</div>
+            )}
         </div>
-        <div>
-            <span className="font-bold">Turn:</span> <span className="text-yellow-300 text-lg">{gameState.players[gameState.currentTurn]?.name || 'Unknown'}</span>
+        <div className="flex gap-6 items-center text-sm">
+            <div className="font-semibold"><span className="text-gray-300">My Score:</span> <span className="text-green-400 text-lg font-bold">{me?.pointsWon || 0}</span></div>
+            <div className="font-semibold"><span className="text-gray-300">Turn:</span> <span className="text-yellow-300 text-base font-bold">{gameState.players[gameState.currentTurn]?.name || 'Unknown'}</span></div>
         </div>
       </div>
 
@@ -167,23 +171,38 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, playerId, onBid
             </div>
         </div>
 
-        {/* Other Players */}
+        {/* Other Players - Circular positioning for even distribution */}
         {gameState.players.filter(p => p.id !== playerId).map((player, idx) => {
+            // Calculate circular positions for 4 players evenly distributed
+            // Positions: Top (0°), Right (90°), Bottom (180°), Left (270°)
+            const angles = [0, 90, 180, 270];
+            const angle = angles[idx];
+            
+            let positionClass = '';
+            if (angle === 0) {
+                positionClass = 'top-8 left-1/2 -translate-x-1/2';
+            } else if (angle === 90) {
+                positionClass = 'right-8 top-1/2 -translate-y-1/2';
+            } else if (angle === 180) {
+                positionClass = 'bottom-32 left-1/2 -translate-x-1/2';
+            } else {
+                positionClass = 'left-8 top-1/2 -translate-y-1/2';
+            }
+            
             return (
-                <div key={player.id} className={`absolute p-4 bg-black/40 rounded-xl text-white backdrop-blur-sm border border-white/10 shadow-lg flex flex-col items-center gap-2
-                    ${idx === 0 ? 'top-8 left-1/2 -translate-x-1/2' : 
-                    idx === 1 ? 'right-12 top-1/3' : 
-                    idx === 2 ? 'right-12 bottom-1/3' :
-                    'left-12 top-1/2 -translate-y-1/2'} 
-                `}>
-                    <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-xl font-bold border-2 border-gray-500">
+                <div key={player.id} className={`absolute p-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl text-white backdrop-blur-md border border-white/20 shadow-2xl flex flex-col items-center gap-1.5 min-w-[130px] ${positionClass} transition-all duration-300 hover:scale-105`}>
+                    <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-xl font-bold border-3 border-white/30 shadow-lg">
                         {player.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="font-bold text-lg">{player.name}</div>
-                    <div className="text-sm text-gray-300">{player.hand.filter(c => c === null).length + player.hand.filter(c => c !== null).length} Cards</div>
-                    {player.hasPassed && <div className="text-red-400 font-bold text-sm bg-red-900/50 px-2 rounded">Passed</div>}
+                    <div className="font-semibold text-sm truncate max-w-[115px] font-poppins" title={player.name}>{player.name}</div>
+                    <div className="text-xs text-gray-300">{player.hand.filter(c => c === null).length + player.hand.filter(c => c !== null).length} Cards</div>
+                    <div className="text-xs text-green-400 font-semibold">Score: {player.pointsWon || 0}</div>
+                    {player.hasPassed && <div className="text-red-400 font-bold text-xs bg-red-900/70 px-2 py-0.5 rounded-full">Passed</div>}
                     {gameState.currentTurn === gameState.players.findIndex(p => p.id === player.id) && (
-                        <div className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-ping"></div>
+                        <div className="absolute -top-2 -right-2 w-5 h-5 bg-yellow-400 rounded-full animate-ping shadow-lg"></div>
+                    )}
+                    {gameState.currentTurn === gameState.players.findIndex(p => p.id === player.id) && (
+                        <div className="absolute -top-2 -right-2 w-5 h-5 bg-yellow-400 rounded-full shadow-lg"></div>
                     )}
                 </div>
             );

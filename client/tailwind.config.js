@@ -11,6 +11,10 @@ export default {
         'card-red': '#e74c3c',
         'card-black': '#2c3e50',
       },
+      fontFamily: {
+        'inter': ['Inter', 'sans-serif'],
+        'poppins': ['Poppins', 'sans-serif'],
+      },
     },
   },
   plugins: [],
