@@ -18,6 +18,9 @@ export class Game {
     friendCards: Card[] = [];
     pot: { playerId: string, card: Card }[] = [];
 
+    // Store disconnected players for rejoin
+    disconnectedPlayers: Map<string, Player> = new Map();
+
     constructor(io: Server) {
         this.io = io;
         this.deck = new Deck();
@@ -39,6 +42,51 @@ export class Game {
     }
 
     addPlayer(id: string, name: string) {
+        // Check if this player is rejoining (same name as a disconnected player)
+        // Only allow rejoin during playing phase or trump_selection or bidding (not lobby)
+        if (this.gameState.phase !== 'lobby') {
+            // Check for disconnected player with same name
+            const disconnectedEntry = Array.from(this.disconnectedPlayers.entries())
+                .find(([_, player]) => player.name === name);
+
+            if (disconnectedEntry) {
+                const [oldId, oldPlayer] = disconnectedEntry;
+                // Rejoin: create new player with old player's state
+                const player = new Player(id, name);
+                player.hand = oldPlayer.hand;
+                player.team = oldPlayer.team;
+                player.pointsWon = oldPlayer.pointsWon;
+                player.hasPassed = oldPlayer.hasPassed;
+
+                // Replace the placeholder in players array
+                const idx = this.players.findIndex(p => p.id === oldId);
+                if (idx !== -1) {
+                    this.players[idx] = player;
+                } else {
+                    this.players.push(player);
+                }
+
+                // Update callerId if the rejoining player was the caller
+                if (this.gameState.callerId === oldId) {
+                    this.gameState.callerId = id;
+                }
+
+                // Update pot entries if any cards were played by this player
+                this.gameState.pot.forEach(potEntry => {
+                    if (potEntry.playerId === oldId) {
+                        potEntry.playerId = id;
+                    }
+                });
+
+                // Remove from disconnected list
+                this.disconnectedPlayers.delete(oldId);
+
+                console.log(`Player ${name} rejoined game with ${player.hand.length} cards`);
+                this.broadcastState();
+                return true;
+            }
+        }
+
         if (this.players.length >= 5) return false;
         const player = new Player(id, name);
         this.players.push(player);
@@ -47,7 +95,18 @@ export class Game {
     }
 
     removePlayer(id: string) {
-        this.players = this.players.filter(p => p.id !== id);
+        const player = this.players.find(p => p.id === id);
+
+        // If game is in progress, store player for potential rejoin
+        if (player && this.gameState.phase !== 'lobby') {
+            this.disconnectedPlayers.set(id, player);
+            console.log(`Player ${player.name} disconnected during game, saved for rejoin`);
+            // Don't remove from players array during game - keep their slot
+        } else {
+            // During lobby, remove player entirely
+            this.players = this.players.filter(p => p.id !== id);
+        }
+
         this.broadcastState();
     }
 
