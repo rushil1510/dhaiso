@@ -2,6 +2,21 @@ import React from 'react';
 import type { GameState, ICard, Suit } from '../types';
 import { Card } from './Card';
 
+// Suit symbol mapping for display
+const suitSymbols: Record<Suit, string> = {
+  'H': '♥',
+  'D': '♦',
+  'C': '♣',
+  'S': '♠'
+};
+
+const suitColors: Record<Suit, string> = {
+  'H': 'text-red-500',
+  'D': 'text-red-500',
+  'C': 'text-white',
+  'S': 'text-white'
+};
+
 interface GameTableProps {
   gameState: GameState;
   playerId: string;
@@ -141,9 +156,9 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, playerId, onBid
             <div className="font-semibold"><span className="text-gray-300">Phase:</span> <span className="text-white">{gameState.phase}</span></div>
             <div className="font-semibold"><span className="text-gray-300">Bid:</span> <span className="text-yellow-300">{gameState.bid}</span></div>
             <div className="font-semibold"><span className="text-gray-300">Caller:</span> <span className="text-white">{gameState.callerId ? gameState.players.find(p => p.id === gameState.callerId)?.name : 'None'}</span></div>
-            <div className="font-semibold"><span className="text-gray-300">Trump:</span> {gameState.trumpSuit ? <span className="text-2xl">{gameState.trumpSuit}</span> : <span className="text-white">None</span>}</div>
+            <div className="font-semibold"><span className="text-gray-300">Trump:</span> {gameState.trumpSuit ? <span className={`text-2xl ${suitColors[gameState.trumpSuit]}`}>{suitSymbols[gameState.trumpSuit]}</span> : <span className="text-white">None</span>}</div>
             {gameState.friendCards && gameState.friendCards.length > 0 && (
-              <div className="font-semibold"><span className="text-gray-300">Friends:</span> {gameState.friendCards.map((card, i) => <span key={i} className="ml-1 text-yellow-300 font-bold">{card.rank}{card.suit}</span>)}</div>
+              <div className="font-semibold"><span className="text-gray-300">Friends:</span> {gameState.friendCards.map((card, i) => <span key={i} className={`ml-1 font-bold ${suitColors[card.suit]}`}>{card.rank}{suitSymbols[card.suit]}</span>)}</div>
             )}
         </div>
         <div className="flex gap-6 items-center text-sm">
