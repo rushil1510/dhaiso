@@ -179,6 +179,14 @@ function App() {
     });
   }, []);
 
+  const handleExitRoom = useCallback(() => {
+    socket.emit('EXIT_ROOM', (response: { success: boolean; error?: string }) => {
+      if (!response.success) {
+        setError(response.error || 'Failed to exit room');
+      }
+    });
+  }, []);
+
   // Connection screen
   if (!connected) {
     return (
@@ -232,9 +240,9 @@ function App() {
   // Game table
   return (
     <div className="relative">
-      {/* Room code display */}
+      {/* Room code display - bottom-left */}
       {roomInfo.code !== 'QUICK' && gameState.phase === 'lobby' && (
-        <div className="absolute bottom-4 right-4 z-50 bg-gray-800/90 backdrop-blur-sm p-3 rounded-lg border border-white/10">
+        <div className="absolute bottom-4 left-4 z-50 bg-gray-800/90 backdrop-blur-sm p-3 rounded-lg border border-white/10">
           <p className="text-gray-400 text-xs">Room Code:</p>
           <p className="text-yellow-400 text-lg font-mono tracking-wider">{roomInfo.code}</p>
         </div>
@@ -250,6 +258,7 @@ function App() {
         onStartGame={handleStartGame}
         onAddBot={handleAddBot}
         onRemoveBot={handleRemoveBot}
+        onExitRoom={handleExitRoom}
       />
 
       {/* Error toast */}

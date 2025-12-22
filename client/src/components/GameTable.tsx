@@ -27,6 +27,7 @@ interface GameTableProps {
   onStartGame: () => void;
   onAddBot?: () => void;
   onRemoveBot?: (botId: string) => void;
+  onExitRoom?: () => void;
 }
 
 const TrumpSelectionModal: React.FC<{ onSelect: (suit: Suit, friends: any[]) => void }> = ({ onSelect }) => {
@@ -155,9 +156,11 @@ export const GameTable: React.FC<GameTableProps> = ({
   onPlayCard, 
   onStartGame,
   onAddBot,
-  onRemoveBot
+  onRemoveBot,
+  onExitRoom
 }) => {
   const me = gameState.players.find(p => p.id === playerId);
+  const [showExitConfirm, setShowExitConfirm] = React.useState(false);
   
   if (!me) return <div className="flex items-center justify-center h-screen text-white font-inter">Loading...</div>;
 
@@ -349,7 +352,50 @@ export const GameTable: React.FC<GameTableProps> = ({
             </div>
         )}
       </div>
-      <div className="absolute bottom-2 right-2 text-xs text-white/30">v1.3</div>
+
+      {/* Exit Room Button - visible during game (not lobby or ended) */}
+      {gameState.phase !== 'lobby' && gameState.phase !== 'ended' && onExitRoom && (
+        <button 
+          onClick={() => setShowExitConfirm(true)}
+          className="absolute top-4 right-4 z-40 bg-red-600/80 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
+        >
+          🚪 Exit Room
+        </button>
+      )}
+
+      {/* Exit Confirmation Modal */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-xl shadow-2xl text-white max-w-md text-center border border-red-500/30">
+            <h2 className="text-2xl font-bold mb-4 text-red-400">⚠️ Exit Game?</h2>
+            
+            <p className="text-gray-300 mb-6">
+              If you leave now, <span className="font-bold text-yellow-400">a bot will take your place</span> and play on your behalf. 
+              You won't be able to rejoin this game.
+            </p>
+            
+            <div className="flex gap-4 justify-center">
+              <button 
+                onClick={() => setShowExitConfirm(false)}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  setShowExitConfirm(false);
+                  onExitRoom?.();
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
+              >
+                Yes, Exit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="absolute bottom-2 right-2 text-xs text-white/30">v1.4</div>
     </div>
   );
 };

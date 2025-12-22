@@ -220,6 +220,14 @@ export class Game {
     startGame() {
         if (this.players.length !== 5) return;
 
+        // Check if all players are bots - refuse to start to save compute
+        const allBots = this.players.every(p => p.id.startsWith('bot-'));
+        if (allBots) {
+            this.logger.warn('Refusing to start game - all players are bots');
+            this.io.emit('GAME_MESSAGE', 'Cannot start game with all bots. At least one human player is required.');
+            return;
+        }
+
         this.resetGameState();
         this.deck.reset();
         this.deck.shuffle();

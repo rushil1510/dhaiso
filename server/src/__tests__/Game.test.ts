@@ -633,4 +633,75 @@ describe('Game', () => {
             expect(mockIo.to).toHaveBeenCalled();
         });
     });
+
+    describe('all-bots game prevention', () => {
+        it('should refuse to start game with all 5 bots', () => {
+            // Add 5 bots
+            game.addPlayer('bot-1-0', 'Bot Alpha');
+            game.addPlayer('bot-2-1', 'Bot Beta');
+            game.addPlayer('bot-3-2', 'Bot Gamma');
+            game.addPlayer('bot-4-3', 'Bot Delta');
+            game.addPlayer('bot-5-4', 'Bot Epsilon');
+
+            expect(game.players.length).toBe(5);
+
+            game.startGame();
+
+            // Game should NOT have started - should still be in lobby
+            expect(game.gameState.phase).toBe('lobby');
+            // Should have emitted a message
+            expect(mockIo.emit).toHaveBeenCalledWith('GAME_MESSAGE', expect.stringContaining('Cannot start game with all bots'));
+        });
+
+        it('should allow game with at least one human player', () => {
+            // Add 4 bots and 1 human
+            game.addPlayer('human-1', 'Alice');
+            game.addPlayer('bot-1-0', 'Bot Alpha');
+            game.addPlayer('bot-2-1', 'Bot Beta');
+            game.addPlayer('bot-3-2', 'Bot Gamma');
+            game.addPlayer('bot-4-3', 'Bot Delta');
+
+            game.startGame();
+
+            // Game should have started
+            expect(game.gameState.phase).toBe('bidding');
+        });
+
+        it('should allow game with all human players', () => {
+            game.addPlayer('p1', 'Alice');
+            game.addPlayer('p2', 'Bob');
+            game.addPlayer('p3', 'Charlie');
+            game.addPlayer('p4', 'David');
+            game.addPlayer('p5', 'Eve');
+
+            game.startGame();
+
+            expect(game.gameState.phase).toBe('bidding');
+        });
+    });
+
+    describe('bot bidding behavior', () => {
+        beforeEach(() => {
+            // Add 4 bots and 1 human
+            game.addPlayer('human-1', 'Alice');
+            game.addPlayer('bot-1-0', 'Bot Alpha');
+            game.addPlayer('bot-2-1', 'Bot Beta');
+            game.addPlayer('bot-3-2', 'Bot Gamma');
+            game.addPlayer('bot-4-3', 'Bot Delta');
+            game.startGame();
+        });
+
+        it('should detect bot players by ID prefix', () => {
+            const humanPlayer = game.players.find(p => p.id === 'human-1');
+            const botPlayer = game.players.find(p => p.id === 'bot-1-0');
+
+            expect(humanPlayer?.id.startsWith('bot-')).toBe(false);
+            expect(botPlayer?.id.startsWith('bot-')).toBe(true);
+        });
+
+        it('should start in bidding phase with first player turn', () => {
+            expect(game.gameState.phase).toBe('bidding');
+            expect(game.currentTurnIndex).toBe(0);
+        });
+    });
 });

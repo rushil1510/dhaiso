@@ -221,6 +221,34 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Exit room during game - replace player with bot
+    socket.on('EXIT_ROOM', (callback: (response: { success: boolean; error?: string }) => void) => {
+        const roomCode = socketRooms.get(socket.id);
+        socketLogger.socketEvent('EXIT_ROOM', socket.id, 'in', { roomCode });
+
+        if (!roomCode) {
+            callback({ success: false, error: 'NOT_IN_ROOM' });
+            return;
+        }
+
+        const room = roomManager.getRoom(roomCode);
+        if (!room) {
+            callback({ success: false, error: 'ROOM_NOT_FOUND' });
+            return;
+        }
+
+        const result = room.exitAndReplaceWithBot(socket.id);
+
+        if (result.success) {
+            socket.leave(roomCode);
+            socketRooms.delete(socket.id);
+            socketLogger.info('Player exited room and replaced with bot', { roomCode });
+            socket.emit('ROOM_LEFT');
+        }
+
+        callback(result);
+    });
+
     // Start game in room
     socket.on('START_ROOM_GAME', () => {
         const room = getSocketRoom(socket.id);

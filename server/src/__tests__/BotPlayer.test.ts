@@ -56,6 +56,32 @@ describe('BotPlayer', () => {
             expect(bot.decideBid(180)).toBe(0);
             expect(bot.decideBid(200)).toBe(0);
         });
+
+        it('should pass even with very strong hand', () => {
+            // Give bot all Aces
+            bot.hand = [
+                new Card('H', 'A'),
+                new Card('D', 'A'),
+                new Card('C', 'A'),
+                new Card('S', 'A'),
+                new Card('H', 'K'),
+            ];
+
+            expect(bot.decideBid(170)).toBe(0);
+        });
+
+        it('should pass even with empty hand', () => {
+            bot.hand = [];
+            expect(bot.decideBid(170)).toBe(0);
+        });
+
+        it('should pass at any bid level', () => {
+            bot.hand = [new Card('H', 'K')];
+
+            expect(bot.decideBid(170)).toBe(0);
+            expect(bot.decideBid(250)).toBe(0);
+            expect(bot.decideBid(300)).toBe(0);
+        });
     });
 
     describe('decideTrump', () => {

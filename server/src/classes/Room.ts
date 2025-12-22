@@ -34,6 +34,9 @@ export class Room {
     hostId: string | null = null;
     lastActivityAt: Date;
 
+    // Bot name cycling - tracks which bot name to use next (0-3 cycles through Alpha/Beta/Gamma/Delta)
+    private nextBotNameIndex: number = 0;
+
     constructor(io: Server, code: string, config: RoomConfig = {}) {
         this.io = io;
         this.code = code;
@@ -298,11 +301,13 @@ export class Room {
             return { success: false, error: 'ROOM_FULL' };
         }
 
-        // Generate unique bot ID and name
-        const botNumber = this.getBots().length + 1;
-        const botId = `bot-${Date.now()}-${botNumber}`;
+        // Generate unique bot ID and name using cycling index
         const botNames = ['Bot Alpha', 'Bot Beta', 'Bot Gamma', 'Bot Delta'];
-        const botName = botNames[(botNumber - 1) % botNames.length];
+        const botName = botNames[this.nextBotNameIndex];
+        const botId = `bot-${Date.now()}-${this.nextBotNameIndex}`;
+
+        // Increment the index for next bot (cycles 0 → 1 → 2 → 3 → 0...)
+        this.nextBotNameIndex = (this.nextBotNameIndex + 1) % 4;
 
         // Add bot to game
         const success = this.game.addPlayer(botId, botName);
@@ -359,6 +364,73 @@ export class Room {
             botId,
             botName: bot.name,
             playerCount: this.getPlayerCount()
+        });
+
+        return { success: true };
+    }
+
+    /**
+     * Allow a player to exit mid-game and be replaced with a bot.
+     * The bot inherits the player's hand, team, and points.
+     */
+    exitAndReplaceWithBot(playerId: string): { success: boolean; error?: string } {
+        this.lastActivityAt = new Date();
+
+        // Can only exit during game
+        if (!this.isGameInProgress()) {
+            return { success: false, error: 'GAME_NOT_IN_PROGRESS' };
+        }
+
+        // Check if player exists
+        const player = this.game.players.find(p => p.id === playerId);
+        if (!player) {
+            return { success: false, error: 'PLAYER_NOT_FOUND' };
+        }
+
+        // Don't allow bots to "exit"
+        if (this.isBot(playerId)) {
+            return { success: false, error: 'ALREADY_BOT' };
+        }
+
+        // Generate bot ID with unique timestamp
+        const botNames = ['Bot Alpha', 'Bot Beta', 'Bot Gamma', 'Bot Delta'];
+        const botName = botNames[this.nextBotNameIndex];
+        const botId = `bot-${Date.now()}-${this.nextBotNameIndex}`;
+        this.nextBotNameIndex = (this.nextBotNameIndex + 1) % 4;
+
+        // Replace player ID in the game's player array
+        const playerIndex = this.game.players.findIndex(p => p.id === playerId);
+        if (playerIndex !== -1) {
+            // Update the player's ID to the bot ID (keeping hand, team, points)
+            this.game.players[playerIndex].id = botId;
+            this.game.players[playerIndex].name = `${botName} (was ${player.name})`;
+        }
+
+        // Update callerId if the exiting player was the caller
+        if (this.game.gameState.callerId === playerId) {
+            this.game.gameState.callerId = botId;
+        }
+
+        // Update pot entries if any cards were played by this player
+        this.game.gameState.pot.forEach(potEntry => {
+            if (potEntry.playerId === playerId) {
+                potEntry.playerId = botId;
+            }
+        });
+
+        // Add to disconnected players so bot AI takes over
+        this.game.disconnectedPlayers.set(botId, this.game.players[playerIndex]);
+
+        // Remove old player IP, add bot IP
+        this.playerIPs.delete(playerId);
+        this.playerIPs.set(botId, 'bot');
+
+        this.logger.info('Player exited and replaced with bot', {
+            playerId,
+            playerName: player.name,
+            botId,
+            botName,
+            phase: this.game.gameState.phase
         });
 
         return { success: true };

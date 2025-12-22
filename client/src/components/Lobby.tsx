@@ -1,4 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+// Use environment variable for backend URL, fallback to localhost for development
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+interface ServerStats {
+  totalRooms: number;
+  totalPlayers: number;
+}
 
 interface LobbyProps {
   onJoin: (name: string, roomCode?: string) => void;
@@ -11,6 +19,30 @@ export const Lobby: React.FC<LobbyProps> = ({ onJoin, onCreateRoom, error, isLoa
   const [name, setName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [mode, setMode] = useState<'choose' | 'create' | 'join'>('choose');
+  const [serverStats, setServerStats] = useState<ServerStats | null>(null);
+
+  // Fetch server stats on mount and periodically
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/rooms/stats`);
+        if (response.ok) {
+          const data = await response.json();
+          setServerStats({
+            totalRooms: data.totalRooms,
+            totalPlayers: data.totalPlayers
+          });
+        }
+      } catch (err) {
+        // Silently fail - stats are optional
+        console.log('Could not fetch server stats');
+      }
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 10000); // Refresh every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   const handleCreateRoom = (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,8 +146,14 @@ export const Lobby: React.FC<LobbyProps> = ({ onJoin, onCreateRoom, error, isLoa
           </div>
         </details>
         
-        <div className="mt-4 text-gray-400 text-xs text-center">
+        <div className="mt-4 text-gray-400 text-xs text-center space-y-1">
           <p>5 players needed to start</p>
+          {serverStats && (
+            <p className="text-emerald-400">
+              🎮 {serverStats.totalRooms} active game{serverStats.totalRooms !== 1 ? 's' : ''} | 
+              👥 {serverStats.totalPlayers} player{serverStats.totalPlayers !== 1 ? 's' : ''} online
+            </p>
+          )}
         </div>
       </div>
     );
