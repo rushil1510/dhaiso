@@ -3,6 +3,8 @@ import { Deck } from './Deck';
 import { Player } from './Player';
 import { GameState, Suit, ICard } from '../types';
 import { Card } from './Card';
+import { Logger } from '../services/Logger';
+import { BotPlayer } from './BotPlayer';
 
 export class Game {
     io: Server;
@@ -21,10 +23,78 @@ export class Game {
     // Store disconnected players for rejoin
     disconnectedPlayers: Map<string, Player> = new Map();
 
+    // Logger instance
+    private logger: Logger;
+
     constructor(io: Server) {
         this.io = io;
         this.deck = new Deck();
         this.gameState = this.getInitialState();
+        this.logger = new Logger({ service: 'Game' });
+    }
+
+    // Check if a player is disconnected
+    private isPlayerDisconnected(playerId: string): boolean {
+        return this.disconnectedPlayers.has(playerId);
+    }
+
+    // Check if current turn player is disconnected and trigger bot
+    private checkAndTriggerBot() {
+        if (this.gameState.phase === 'lobby' || this.gameState.phase === 'ended') return;
+
+        const currentPlayer = this.players[this.currentTurnIndex];
+        if (!currentPlayer) return;
+
+        if (this.isPlayerDisconnected(currentPlayer.id)) {
+            this.logger.botAction(currentPlayer.name, 'TAKEOVER', 'Player disconnected, bot taking over', {
+                phase: this.gameState.phase,
+                currentTurn: this.currentTurnIndex
+            });
+
+            // Add a small delay to make it feel more natural
+            setTimeout(() => {
+                this.botTakeTurn(currentPlayer);
+            }, 2000);
+        }
+    }
+
+    // Bot logic for taking a turn - uses BotPlayer for decisions
+    private botTakeTurn(player: Player) {
+        // Create a BotPlayer instance to make decisions
+        const bot = BotPlayer.fromPlayer(player);
+
+        switch (this.gameState.phase) {
+            case 'bidding': {
+                const bidAmount = bot.decideBid(this.gameState.bid);
+                this.logger.botAction(player.name, bidAmount === 0 ? 'PASS' : 'BID',
+                    'Bot decision during bidding', { bidAmount, currentBid: this.gameState.bid });
+                this.handleBid(player.id, bidAmount);
+                break;
+            }
+            case 'trump_selection': {
+                const decision = bot.decideTrump();
+                this.logger.botAction(player.name, 'SELECT_TRUMP',
+                    `Chose ${decision.suit} as trump`, {
+                    trump: decision.suit,
+                    friends: decision.friends.map(f => `${f.rank}${f.suit}`)
+                });
+                this.handleSelectTrumpAndFriends(player.id, decision.suit, decision.friends);
+                break;
+            }
+            case 'playing': {
+                const cardToPlay = bot.decideCard(this.gameState.pot, this.gameState.trumpSuit!);
+                if (cardToPlay) {
+                    this.logger.botAction(player.name, 'PLAY_CARD',
+                        `Playing ${cardToPlay.rank}${cardToPlay.suit}`, {
+                        card: `${cardToPlay.rank}${cardToPlay.suit}`,
+                        handSize: player.hand.length,
+                        potSize: this.gameState.pot.length
+                    });
+                    this.handlePlayCard(player.id, { suit: cardToPlay.suit, rank: cardToPlay.rank });
+                }
+                break;
+            }
+        }
     }
 
     getInitialState(): GameState {
@@ -81,7 +151,14 @@ export class Game {
                 // Remove from disconnected list
                 this.disconnectedPlayers.delete(oldId);
 
-                console.log(`Player ${name} rejoined game with ${player.hand.length} cards`);
+                this.logger.info('Player rejoined game', {
+                    playerName: name,
+                    playerId: id,
+                    oldPlayerId: oldId,
+                    cardsRestored: player.hand.length,
+                    team: player.team,
+                    phase: this.gameState.phase
+                });
                 this.broadcastState();
                 return true;
             }
@@ -100,11 +177,24 @@ export class Game {
         // If game is in progress, store player for potential rejoin
         if (player && this.gameState.phase !== 'lobby') {
             this.disconnectedPlayers.set(id, player);
-            console.log(`Player ${player.name} disconnected during game, saved for rejoin`);
+            this.logger.info('Player disconnected during game - saved for rejoin', {
+                playerName: player.name,
+                playerId: id,
+                phase: this.gameState.phase,
+                cardsHeld: player.hand.length,
+                team: player.team
+            });
             // Don't remove from players array during game - keep their slot
         } else {
             // During lobby, remove player entirely
             this.players = this.players.filter(p => p.id !== id);
+            if (player) {
+                this.logger.info('Player left lobby', {
+                    playerName: player.name,
+                    playerId: id,
+                    remainingPlayers: this.players.length
+                });
+            }
         }
 
         this.broadcastState();
@@ -149,7 +239,18 @@ export class Game {
 
         this.gameState.phase = 'bidding';
         this.currentTurnIndex = 0; // Start with first player
+
+        this.logger.phaseChange('lobby', 'bidding', 'Game started - all players have face cards');
+        this.logger.info('Game started', {
+            playerCount: this.players.length,
+            playerNames: this.players.map(p => p.name),
+            firstPlayer: this.players[0]?.name
+        });
+
         this.broadcastState();
+
+        // Check if first player is disconnected
+        this.checkAndTriggerBot();
     }
 
     handleBid(playerId: string, amount: number) {
@@ -165,6 +266,14 @@ export class Game {
                 // Winner found
                 this.gameState.callerId = activeBidders[0].id;
                 this.gameState.phase = 'trump_selection';
+
+                this.logger.phaseChange('bidding', 'trump_selection', 'Bidding complete - caller selected');
+                this.logger.info('Bidding winner determined', {
+                    callerName: activeBidders[0].name,
+                    callerId: activeBidders[0].id,
+                    winningBid: this.gameState.bid
+                });
+
                 this.broadcastState();
                 return;
             }
@@ -187,6 +296,9 @@ export class Game {
         this.currentTurnIndex = nextIndex;
         this.gameState.currentTurn = this.currentTurnIndex;
         this.broadcastState();
+
+        // Check if next player is disconnected
+        this.checkAndTriggerBot();
     }
 
     handleSelectTrumpAndFriends(playerId: string, suit: Suit, friends: { rank: string, suit: Suit }[]) {
@@ -218,7 +330,20 @@ export class Game {
         this.gameState.phase = 'playing';
         this.currentTurnIndex = this.players.findIndex(p => p.id === this.gameState.callerId); // Caller starts
         this.gameState.currentTurn = this.currentTurnIndex;
+
+        const caller = this.players.find(p => p.id === this.gameState.callerId);
+        this.logger.phaseChange('trump_selection', 'playing', 'Trump and friends selected, teams assigned');
+        this.logger.info('Playing phase started', {
+            trump: this.gameState.trumpSuit,
+            friends: this.gameState.friendCards.map(f => `${f.rank}${f.suit}`),
+            callerName: caller?.name,
+            teams: this.players.map(p => ({ name: p.name, team: p.team }))
+        });
+
         this.broadcastState();
+
+        // Check if caller is disconnected
+        this.checkAndTriggerBot();
     }
 
     private dealRemainingCards(): boolean {
@@ -264,6 +389,9 @@ export class Game {
     private advanceTurn() {
         this.gameState.currentTurn = this.currentTurnIndex;
         this.broadcastState();
+
+        // Check if next player is disconnected
+        this.checkAndTriggerBot();
     }
 
     handlePlayCard(playerId: string, cardData: { suit: Suit, rank: string }) {
@@ -367,6 +495,9 @@ export class Game {
                 this.endGame();
             } else {
                 this.broadcastState();
+
+                // Check if next player is disconnected
+                this.checkAndTriggerBot();
             }
         }, 5000); // 5 second delay
     }
@@ -396,6 +527,24 @@ export class Game {
             bid: this.gameState.bid,
             callerWins: callerWins
         };
+
+        const caller = this.players.find(p => p.id === this.gameState.callerId);
+        this.logger.phaseChange('playing', 'ended', callerWins ? 'Caller team wins!' : 'Defense team wins!');
+        this.logger.info('🏆 Game ended', {
+            winner: callerWins ? 'caller_team' : 'defense_team',
+            callerName: caller?.name,
+            callerTeamScore: callerTeamPoints,
+            defenseTeamScore: defenseTeamPoints,
+            bid: this.gameState.bid,
+            margin: callerWins
+                ? callerTeamPoints - this.gameState.bid
+                : this.gameState.bid - callerTeamPoints,
+            playerStats: this.players.map(p => ({
+                name: p.name,
+                team: p.team,
+                pointsWon: p.pointsWon
+            }))
+        });
 
         this.broadcastState();
     }
