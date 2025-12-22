@@ -218,7 +218,7 @@ function App() {
     <div className="relative">
       {/* Room code display */}
       {roomInfo.code !== 'QUICK' && gameState.phase === 'lobby' && (
-        <div className="absolute top-4 left-4 z-50 bg-gray-800/90 backdrop-blur-sm p-3 rounded-lg border border-white/10">
+        <div className="absolute bottom-4 right-4 z-50 bg-gray-800/90 backdrop-blur-sm p-3 rounded-lg border border-white/10">
           <p className="text-gray-400 text-xs">Room Code:</p>
           <p className="text-yellow-400 text-lg font-mono tracking-wider">{roomInfo.code}</p>
         </div>
