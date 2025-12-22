@@ -341,12 +341,12 @@ describe('Room', () => {
         });
     });
 
-    describe('bot name cycling', () => {
+    describe('bot name bag system', () => {
         beforeEach(() => {
             room.addPlayer('socket-1', 'Alice', '192.168.1.1');
         });
 
-        it('should cycle through bot names in order', () => {
+        it('should use bot names from the available bag', () => {
             const result1 = room.addBot('socket-1');
             const result2 = room.addBot('socket-1');
             const result3 = room.addBot('socket-1');
@@ -358,35 +358,43 @@ describe('Room', () => {
             expect(result4.botName).toBe('Bot Delta');
         });
 
-        it('should continue cycling after removing bots', () => {
-            // Add 2 bots
-            const result1 = room.addBot('socket-1');
-            const result2 = room.addBot('socket-1');
-            expect(result1.botName).toBe('Bot Alpha');
-            expect(result2.botName).toBe('Bot Beta');
+        it('should reuse removed bot names', () => {
+            // Add all 4 bots to exhaust the bag
+            const result1 = room.addBot('socket-1'); // Alpha
+            const result2 = room.addBot('socket-1'); // Beta
+            const result3 = room.addBot('socket-1'); // Gamma
+            const result4 = room.addBot('socket-1'); // Delta - room is now full
 
-            // Remove one bot
-            room.removeBot('socket-1', result1.botId!);
+            // Remove one specifically
+            const removedName = result2.botName;
+            room.removeBot('socket-1', result2.botId!);
 
-            // Add another bot - should continue with Gamma, not restart at Alpha
-            const result3 = room.addBot('socket-1');
-            expect(result3.botName).toBe('Bot Gamma');
+            // Add another bot - only the removed name should be available in the bag
+            const result5 = room.addBot('socket-1');
+            expect(result5.botName).toBe(removedName); // Must be the returned name
         });
 
-        it('should cycle back to Alpha after Delta', () => {
+        it('should return names to bag when bots are removed', () => {
             // Add all 4 bots
-            room.addBot('socket-1'); // Alpha
-            room.addBot('socket-1'); // Beta
-            room.addBot('socket-1'); // Gamma
-            room.addBot('socket-1'); // Delta
+            const bot1 = room.addBot('socket-1'); // Alpha
+            const bot2 = room.addBot('socket-1'); // Beta
+            const bot3 = room.addBot('socket-1'); // Gamma
+            const bot4 = room.addBot('socket-1'); // Delta
 
             // Room is full, remove all bots
-            const bots = room.getBots();
-            bots.forEach(bot => room.removeBot('socket-1', bot.id));
+            room.removeBot('socket-1', bot4.botId!);
+            room.removeBot('socket-1', bot3.botId!);
+            room.removeBot('socket-1', bot2.botId!);
+            room.removeBot('socket-1', bot1.botId!);
 
-            // Add new bots - should start at Alpha again after cycling
-            const newBot = room.addBot('socket-1');
-            expect(newBot.botName).toBe('Bot Alpha');
+            // Add bots again - names should be available from the bag
+            const newBot1 = room.addBot('socket-1');
+            const newBot2 = room.addBot('socket-1');
+
+            // Names should be from the bag (order may vary due to Set)
+            expect(['Bot Alpha', 'Bot Beta', 'Bot Gamma', 'Bot Delta']).toContain(newBot1.botName);
+            expect(['Bot Alpha', 'Bot Beta', 'Bot Gamma', 'Bot Delta']).toContain(newBot2.botName);
+            expect(newBot1.botName).not.toBe(newBot2.botName);
         });
     });
 
