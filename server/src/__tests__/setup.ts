@@ -1,15 +1,27 @@
 // Jest setup file
 // This runs before each test file
 
-// Suppress console output during tests (optional - comment out if you want to see logs)
-// global.console = {
-//   ...console,
-//   log: jest.fn(),
-//   debug: jest.fn(),
-//   info: jest.fn(),
-//   warn: jest.fn(),
-//   error: jest.fn(),
-// };
+// Mock the logger to silence output during tests
+jest.mock('../services/Logger', () => {
+    return {
+        Logger: jest.fn().mockImplementation(() => ({
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+            playerAction: jest.fn(),
+            phaseChange: jest.fn(),
+            botAction: jest.fn(),
+            socketEvent: jest.fn(),
+        })),
+        globalLogger: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+        }
+    };
+});
 
 // Set test environment
 process.env.NODE_ENV = 'test';

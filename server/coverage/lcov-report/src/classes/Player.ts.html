@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">33.33% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>7/21</span>
+                <span class='fraction'>21/21</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">10% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/10</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">41.17% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>7/17</span>
+                <span class='fraction'>17/17</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -111,46 +111,46 @@
 <a name='L46'></a><a href='#L46'>46</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">63x</span>
-<span class="cline-any cline-yes">63x</span>
-<span class="cline-any cline-yes">63x</span>
-<span class="cline-any cline-yes">63x</span>
+<span class="cline-any cline-yes">250x</span>
+<span class="cline-any cline-yes">250x</span>
+<span class="cline-any cline-yes">250x</span>
+<span class="cline-any cline-yes">250x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">63x</span>
-<span class="cline-any cline-yes">63x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">250x</span>
+<span class="cline-any cline-yes">250x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">153x</span>
+<span class="cline-any cline-yes">153x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">155x</span>
+<span class="cline-any cline-yes">1219x</span>
+<span class="cline-any cline-yes">380x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">361x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { IPlayer, ICard } from '../types';
@@ -169,33 +169,33 @@ export class Player implements IPlayer {
         this.name = name;
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    addCards(</span>cards: Card[]) {
-<span class="cstat-no" title="statement not covered" >        this.hand.push(...cards);</span>
-<span class="cstat-no" title="statement not covered" >        this.sortHand();</span>
+    addCards(cards: Card[]) {
+        this.hand.push(...cards);
+        this.sortHand();
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    removeCard(</span>card: Card) {
-        const index = <span class="cstat-no" title="statement not covered" >this.hand.findIndex(<span class="fstat-no" title="function not covered" >c </span>=&gt; <span class="cstat-no" title="statement not covered" >c.suit === card.suit &amp;&amp; c.rank === card.rank)</span>;</span>
-<span class="cstat-no" title="statement not covered" >        if (index !== -1) {</span>
-<span class="cstat-no" title="statement not covered" >            this.hand.splice(index, 1);</span>
+    removeCard(card: Card) {
+        const index = this.hand.findIndex(c =&gt; c.suit === card.suit &amp;&amp; c.rank === card.rank);
+        if (index !== -1) {
+            this.hand.splice(index, 1);
         }
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    hasSuit(</span>suit: string): boolean {
-<span class="cstat-no" title="statement not covered" >        return this.hand.some(<span class="fstat-no" title="function not covered" >c </span>=&gt; <span class="cstat-no" title="statement not covered" >c.suit === suit)</span>;</span>
+    hasSuit(suit: string): boolean {
+        return this.hand.some(c =&gt; c.suit === suit);
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    sortHand(</span>) {
+    sortHand() {
         // Sort by suit then rank (power)
-<span class="cstat-no" title="statement not covered" >        this.hand.sort(<span class="fstat-no" title="function not covered" >(a</span>, b) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >            if (a.suit !== b.suit) <span class="cstat-no" title="statement not covered" >return a.suit.localeCompare(b.suit);</span></span>
-<span class="cstat-no" title="statement not covered" >            return a.power - b.power;</span>
+        this.hand.sort((a, b) =&gt; {
+            if (a.suit !== b.suit) return a.suit.localeCompare(b.suit);
+            return a.power - b.power;
         });
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    hasFaceCard(</span>): boolean {
+    hasFaceCard(): boolean {
         // J, Q, K, A are considered "Power Cards" or "Face Cards" for the purpose of the reshuffle rule as per plan
-<span class="cstat-no" title="statement not covered" >        return this.hand.some(<span class="fstat-no" title="function not covered" >c </span>=&gt; <span class="cstat-no" title="statement not covered" >['J', 'Q', 'K', 'A'].includes(c.rank))</span>;</span>
+        return this.hand.some(c =&gt; ['J', 'Q', 'K', 'A'].includes(c.rank));
     }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -205,7 +205,7 @@ export class Player implements IPlayer {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-12-22T17:27:12.085Z
+                at 2025-12-22T17:35:38.064Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
