@@ -33,9 +33,9 @@ export class Game {
         this.logger = new Logger({ service: 'Game' });
     }
 
-    // Check if a player is disconnected
-    private isPlayerDisconnected(playerId: string): boolean {
-        return this.disconnectedPlayers.has(playerId);
+    // Check if a player is disconnected or is a bot (bots use IDs starting with 'bot-')
+    private isPlayerDisconnectedOrBot(playerId: string): boolean {
+        return this.disconnectedPlayers.has(playerId) || playerId.startsWith('bot-');
     }
 
     // Check if current turn player is disconnected and trigger bot
@@ -45,7 +45,7 @@ export class Game {
         const currentPlayer = this.players[this.currentTurnIndex];
         if (!currentPlayer) return;
 
-        if (this.isPlayerDisconnected(currentPlayer.id)) {
+        if (this.isPlayerDisconnectedOrBot(currentPlayer.id)) {
             this.logger.botAction(currentPlayer.name, 'TAKEOVER', 'Player disconnected, bot taking over', {
                 phase: this.gameState.phase,
                 currentTurn: this.currentTurnIndex

@@ -259,4 +259,108 @@ export class Room {
             playerCount: this.game.players.length
         };
     }
+
+    /**
+     * Check if a player ID belongs to a bot
+     */
+    isBot(playerId: string): boolean {
+        return playerId.startsWith('bot-');
+    }
+
+    /**
+     * Get all bots in the room
+     */
+    getBots(): Player[] {
+        return this.game.players.filter(p => this.isBot(p.id));
+    }
+
+    /**
+     * Add a bot to the room (host only)
+     */
+    addBot(requesterId: string): { success: boolean; botId?: string; botName?: string; error?: string } {
+        this.lastActivityAt = new Date();
+
+        // Only host can add bots
+        if (this.hostId !== requesterId) {
+            this.logger.warn('Non-host tried to add bot', { requesterId, hostId: this.hostId });
+            return { success: false, error: 'NOT_HOST' };
+        }
+
+        // Can't add bots during game
+        if (this.isGameInProgress()) {
+            this.logger.warn('Cannot add bot - game in progress');
+            return { success: false, error: 'GAME_IN_PROGRESS' };
+        }
+
+        // Check room capacity
+        if (this.isFull()) {
+            this.logger.warn('Cannot add bot - room full');
+            return { success: false, error: 'ROOM_FULL' };
+        }
+
+        // Generate unique bot ID and name
+        const botNumber = this.getBots().length + 1;
+        const botId = `bot-${Date.now()}-${botNumber}`;
+        const botNames = ['Bot Alpha', 'Bot Beta', 'Bot Gamma', 'Bot Delta'];
+        const botName = botNames[(botNumber - 1) % botNames.length];
+
+        // Add bot to game
+        const success = this.game.addPlayer(botId, botName);
+
+        if (success) {
+            this.playerIPs.set(botId, 'bot'); // Mark as bot IP
+            this.logger.info('Bot added to room', {
+                botId,
+                botName,
+                playerCount: this.getPlayerCount()
+            });
+            return { success: true, botId, botName };
+        }
+
+        return { success: false, error: 'FAILED_TO_ADD' };
+    }
+
+    /**
+     * Remove a bot from the room (host only)
+     */
+    removeBot(requesterId: string, botId: string): { success: boolean; error?: string } {
+        this.lastActivityAt = new Date();
+
+        // Only host can remove bots
+        if (this.hostId !== requesterId) {
+            this.logger.warn('Non-host tried to remove bot', { requesterId, hostId: this.hostId });
+            return { success: false, error: 'NOT_HOST' };
+        }
+
+        // Can't remove bots during game
+        if (this.isGameInProgress()) {
+            this.logger.warn('Cannot remove bot - game in progress');
+            return { success: false, error: 'GAME_IN_PROGRESS' };
+        }
+
+        // Check if the ID is actually a bot
+        if (!this.isBot(botId)) {
+            this.logger.warn('Cannot remove - not a bot', { botId });
+            return { success: false, error: 'NOT_A_BOT' };
+        }
+
+        // Check if bot exists in room
+        const bot = this.game.players.find(p => p.id === botId);
+        if (!bot) {
+            this.logger.warn('Bot not found', { botId });
+            return { success: false, error: 'BOT_NOT_FOUND' };
+        }
+
+        // Remove the bot
+        this.game.removePlayer(botId);
+        this.playerIPs.delete(botId);
+
+        this.logger.info('Bot removed from room', {
+            botId,
+            botName: bot.name,
+            playerCount: this.getPlayerCount()
+        });
+
+        return { success: true };
+    }
 }

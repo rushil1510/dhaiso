@@ -237,6 +237,34 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Add bot to room (host only)
+    socket.on('ADD_BOT', (callback: (response: { success: boolean; botId?: string; botName?: string; error?: string }) => void) => {
+        const room = getSocketRoom(socket.id);
+        socketLogger.socketEvent('ADD_BOT', socket.id, 'in');
+
+        if (!room) {
+            callback({ success: false, error: 'NOT_IN_ROOM' });
+            return;
+        }
+
+        const result = room.addBot(socket.id);
+        callback(result);
+    });
+
+    // Remove bot from room (host only)
+    socket.on('REMOVE_BOT', (data: { botId: string }, callback: (response: { success: boolean; error?: string }) => void) => {
+        const room = getSocketRoom(socket.id);
+        socketLogger.socketEvent('REMOVE_BOT', socket.id, 'in', { botId: data.botId });
+
+        if (!room) {
+            callback({ success: false, error: 'NOT_IN_ROOM' });
+            return;
+        }
+
+        const result = room.removeBot(socket.id, data.botId);
+        callback(result);
+    });
+
     // Game actions in room context
     socket.on('ROOM_BID', (data: { amount: number }) => {
         const room = getSocketRoom(socket.id);

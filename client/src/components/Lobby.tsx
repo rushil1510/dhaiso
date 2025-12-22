@@ -29,7 +29,7 @@ export const Lobby: React.FC<LobbyProps> = ({ onJoin, onCreateRoom, error, isLoa
   // Main choice screen
   if (mode === 'choose') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-emerald-900 via-green-900 to-teal-900 font-inter">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-emerald-900 via-green-900 to-teal-900 font-inter p-4">
         <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-10 rounded-2xl shadow-2xl w-[420px] border border-white/10">
           <h1 className="text-4xl font-bold text-center mb-8 text-white font-poppins bg-gradient-to-r from-yellow-300 to-yellow-500 bg-clip-text text-transparent">
             Dhaiso
@@ -69,7 +69,52 @@ export const Lobby: React.FC<LobbyProps> = ({ onJoin, onCreateRoom, error, isLoa
           </div>
         </div>
         
-        <div className="mt-6 text-gray-300 text-sm text-center">
+        {/* How to Play - Collapsible Rules */}
+        <details className="mt-6 w-[420px] bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl border border-white/10 overflow-hidden">
+          <summary className="p-4 cursor-pointer text-yellow-400 font-semibold flex items-center justify-between hover:bg-white/5 transition-colors">
+            <span>📖 How to Play</span>
+            <span className="text-gray-400 text-sm">Click to expand</span>
+          </summary>
+          <div className="p-4 pt-0 text-gray-300 text-sm space-y-4">
+            {/* Card Values */}
+            <div>
+              <h3 className="text-yellow-400 font-semibold mb-2">🎴 Card Values</h3>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-gray-700/50 p-2 rounded">Ace (A) = <span className="text-yellow-400">20 pts</span></div>
+                <div className="bg-gray-700/50 p-2 rounded">King (K) = <span className="text-yellow-400">15 pts</span></div>
+                <div className="bg-gray-700/50 p-2 rounded">Queen (Q) = <span className="text-yellow-400">10 pts</span></div>
+                <div className="bg-gray-700/50 p-2 rounded">Jack (J) = <span className="text-yellow-400">5 pts</span></div>
+                <div className="bg-red-900/50 p-2 rounded col-span-2 text-center">
+                  Queen of Spades (Q♠) = <span className="text-red-400 font-bold">60 pts!</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Game Flow */}
+            <div>
+              <h3 className="text-yellow-400 font-semibold mb-2">🎲 Game Flow</h3>
+              <ol className="list-decimal list-inside space-y-1 text-xs">
+                <li><span className="text-gray-400">Bidding</span> - Bid on points you can win (min: 170)</li>
+                <li><span className="text-gray-400">Trump Selection</span> - Winner picks trump suit & 2 friend cards</li>
+                <li><span className="text-gray-400">Playing</span> - 8 tricks, must follow suit if possible</li>
+                <li><span className="text-gray-400">Scoring</span> - Caller team needs bid points to win</li>
+              </ol>
+            </div>
+
+            {/* Key Rules */}
+            <div>
+              <h3 className="text-yellow-400 font-semibold mb-2">⚡ Key Rules</h3>
+              <ul className="space-y-1 text-xs">
+                <li>• <span className="text-gray-400">5 players</span> required</li>
+                <li>• <span className="text-gray-400">40 cards</span> (no 2s, 3s, 4s)</li>
+                <li>• <span className="text-gray-400">A♠</span> cannot be a friend card</li>
+                <li>• <span className="text-gray-400">Trump</span> beats all other suits</li>
+              </ul>
+            </div>
+          </div>
+        </details>
+        
+        <div className="mt-4 text-gray-400 text-xs text-center">
           <p>5 players needed to start</p>
         </div>
       </div>

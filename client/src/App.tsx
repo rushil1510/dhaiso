@@ -163,6 +163,22 @@ function App() {
     socket.emit('START_GAME');
   }, []);
 
+  const handleAddBot = useCallback(() => {
+    socket.emit('ADD_BOT', (response: { success: boolean; error?: string }) => {
+      if (!response.success) {
+        setError(response.error || 'Failed to add bot');
+      }
+    });
+  }, []);
+
+  const handleRemoveBot = useCallback((botId: string) => {
+    socket.emit('REMOVE_BOT', { botId }, (response: { success: boolean; error?: string }) => {
+      if (!response.success) {
+        setError(response.error || 'Failed to remove bot');
+      }
+    });
+  }, []);
+
   // Connection screen
   if (!connected) {
     return (
@@ -227,10 +243,13 @@ function App() {
       <GameTable 
         gameState={gameState} 
         playerId={playerId}
+        isHost={roomInfo.isHost}
         onBid={handleBid}
         onSelectTrump={handleSelectTrump}
         onPlayCard={handlePlayCard}
         onStartGame={handleStartGame}
+        onAddBot={handleAddBot}
+        onRemoveBot={handleRemoveBot}
       />
 
       {/* Error toast */}

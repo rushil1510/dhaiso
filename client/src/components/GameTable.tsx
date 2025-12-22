@@ -20,10 +20,13 @@ const suitColors: Record<Suit, string> = {
 interface GameTableProps {
   gameState: GameState;
   playerId: string;
+  isHost: boolean;
   onBid: (amount: number) => void;
   onSelectTrump: (suit: Suit, friends: any[]) => void;
   onPlayCard: (card: ICard) => void;
   onStartGame: () => void;
+  onAddBot?: () => void;
+  onRemoveBot?: (botId: string) => void;
 }
 
 const TrumpSelectionModal: React.FC<{ onSelect: (suit: Suit, friends: any[]) => void }> = ({ onSelect }) => {
@@ -143,7 +146,17 @@ const TrumpSelectionModal: React.FC<{ onSelect: (suit: Suit, friends: any[]) => 
 };
 
 
-export const GameTable: React.FC<GameTableProps> = ({ gameState, playerId, onBid, onSelectTrump, onPlayCard, onStartGame }) => {
+export const GameTable: React.FC<GameTableProps> = ({ 
+  gameState, 
+  playerId, 
+  isHost,
+  onBid, 
+  onSelectTrump, 
+  onPlayCard, 
+  onStartGame,
+  onAddBot,
+  onRemoveBot
+}) => {
   const me = gameState.players.find(p => p.id === playerId);
   
   if (!me) return <div className="flex items-center justify-center h-screen text-white font-inter">Loading...</div>;
@@ -261,12 +274,42 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, playerId, onBid
         {gameState.phase === 'lobby' && (
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
                 <h2 className="text-2xl font-bold mb-4">Waiting for players... ({gameState.players.length}/5)</h2>
+                
+                {/* Bot Controls - Host Only */}
+                {isHost && (
+                  <div className="mb-4 space-y-3">
+                    <div className="flex gap-2 justify-center">
+                      <button 
+                        onClick={onAddBot}
+                        disabled={gameState.players.length >= 5}
+                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                      >
+                        🤖 Add Bot
+                      </button>
+                    </div>
+                    
+                    {/* List of bots with remove buttons */}
+                    {gameState.players.filter(p => p.id.startsWith('bot-')).length > 0 && (
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {gameState.players.filter(p => p.id.startsWith('bot-')).map(bot => (
+                          <button
+                            key={bot.id}
+                            onClick={() => onRemoveBot?.(bot.id)}
+                            className="bg-red-600/80 hover:bg-red-700 text-white px-3 py-1 rounded text-sm flex items-center gap-1 transition-colors"
+                          >
+                            ✕ {bot.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 {gameState.players.length >= 5 && (
-                     <button onClick={onStartGame} className="bg-yellow-500 text-black px-6 py-3 rounded-lg font-bold">
+                     <button onClick={onStartGame} className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-3 rounded-lg font-bold transition-colors">
                          Start Game
                      </button>
                 )}
-                {/* Note: I need to pass onStartGame prop or handle it via socket in App */}
             </div>
         )}
 
