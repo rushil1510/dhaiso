@@ -167,7 +167,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-emerald-900 via-green-900 to-teal-900 p-4 font-inter">
       {/* Header Info */}
-      <div className="flex justify-between text-white mb-4 bg-black/40 p-3 rounded-xl backdrop-blur-md border border-white/10 shadow-lg">
+      <div className="flex flex-wrap justify-between text-white mb-2 md:mb-4 bg-black/40 p-2 md:p-3 rounded-xl backdrop-blur-md border border-white/10 shadow-lg gap-2">
         <div className="flex gap-6 items-center text-sm">
             <div className="font-semibold"><span className="text-gray-300">Phase:</span> <span className="text-white">{gameState.phase}</span></div>
             <div className="font-semibold"><span className="text-gray-300">Bid:</span> <span className="text-yellow-300">{gameState.bid}</span></div>
@@ -186,7 +186,7 @@ export const GameTable: React.FC<GameTableProps> = ({
       {/* Main Table Area */}
       <div className="flex-1 relative flex items-center justify-center perspective-1000">
         {/* Pot Area */}
-        <div className="relative w-96 h-64 bg-green-700/50 rounded-full border-4 border-green-900/50 flex items-center justify-center shadow-inner">
+        <div className="relative w-48 h-32 md:w-96 md:h-64 bg-green-700/50 rounded-full border-4 border-green-900/50 flex items-center justify-center shadow-inner">
             {gameState.pot.length === 0 && gameState.phase === 'playing' && (
                 <div className="text-white/50 font-bold">Waiting for {gameState.players[gameState.currentTurn]?.name || 'Unknown'} to play...</div>
             )}
@@ -221,19 +221,19 @@ export const GameTable: React.FC<GameTableProps> = ({
             return (
                 <div 
                     key={player.id} 
-                    className="absolute p-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl text-white backdrop-blur-md border border-white/20 shadow-2xl flex flex-col items-center gap-1.5 min-w-[130px] transition-all duration-300 hover:scale-105"
+                    className="absolute p-2 md:p-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl md:rounded-2xl text-white backdrop-blur-md border border-white/20 shadow-2xl flex flex-col items-center gap-1 md:gap-1.5 min-w-[80px] md:min-w-[130px] transition-all duration-300 hover:scale-105"
                     style={{
                         left: `${x}%`,
                         top: `${y}%`,
                         transform: 'translate(-50%, -50%)'
                     }}
                 >
-                    <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-xl font-bold border-3 border-white/30 shadow-lg">
+                    <div className="w-10 h-10 md:w-14 md:h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-base md:text-xl font-bold border-2 md:border-3 border-white/30 shadow-lg">
                         {player.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="font-semibold text-sm truncate max-w-[115px] font-poppins" title={player.name}>{player.name}</div>
-                    <div className="text-xs text-gray-300">{player.hand.filter(c => c === null).length + player.hand.filter(c => c !== null).length} Cards</div>
-                    <div className="text-xs text-green-400 font-semibold">Score: {player.pointsWon || 0}</div>
+                    <div className="font-semibold text-xs md:text-sm truncate max-w-[70px] md:max-w-[115px] font-poppins" title={player.name}>{player.name}</div>
+                    <div className="text-[10px] md:text-xs text-gray-300">{player.hand.filter(c => c === null).length + player.hand.filter(c => c !== null).length} Cards</div>
+                    <div className="text-[10px] md:text-xs text-green-400 font-semibold">Score: {player.pointsWon || 0}</div>
                     {player.hasPassed && <div className="text-red-400 font-bold text-xs bg-red-900/70 px-2 py-0.5 rounded-full">Passed</div>}
                     {gameState.currentTurn === gameState.players.findIndex(p => p.id === player.id) && (
                         <div className="absolute -top-2 -right-2 w-5 h-5 bg-yellow-400 rounded-full animate-ping shadow-lg"></div>
@@ -248,7 +248,7 @@ export const GameTable: React.FC<GameTableProps> = ({
 
       {/* My Hand & Controls */}
       <div className="mt-auto">
-        <div className="flex justify-center gap-2 mb-4">
+        <div className="flex justify-center gap-1 md:gap-2 mb-2 md:mb-4 overflow-x-auto px-2">
           {me?.hand.map((card, idx) => (
             <Card 
               key={idx} 
@@ -357,9 +357,9 @@ export const GameTable: React.FC<GameTableProps> = ({
       {gameState.phase !== 'lobby' && gameState.phase !== 'ended' && onExitRoom && (
         <button 
           onClick={() => setShowExitConfirm(true)}
-          className="absolute top-4 right-4 z-40 bg-red-600/80 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
+          className="absolute bottom-20 left-4 z-40 bg-red-600/80 hover:bg-red-700 text-white px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-semibold transition-colors flex items-center gap-1 md:gap-2"
         >
-          🚪 Exit Room
+          🚪 Exit
         </button>
       )}
 

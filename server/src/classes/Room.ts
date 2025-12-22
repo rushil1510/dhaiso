@@ -34,8 +34,8 @@ export class Room {
     hostId: string | null = null;
     lastActivityAt: Date;
 
-    // Bot name cycling - tracks which bot name to use next (0-3 cycles through Alpha/Beta/Gamma/Delta)
-    private nextBotNameIndex: number = 0;
+    // Bot names available in the "bag" - names are removed when used, returned when bot removed
+    private availableBotNames: Set<string> = new Set(['Bot Alpha', 'Bot Beta', 'Bot Gamma', 'Bot Delta']);
 
     constructor(io: Server, code: string, config: RoomConfig = {}) {
         this.io = io;
@@ -301,13 +301,16 @@ export class Room {
             return { success: false, error: 'ROOM_FULL' };
         }
 
-        // Generate unique bot ID and name using cycling index
-        const botNames = ['Bot Alpha', 'Bot Beta', 'Bot Gamma', 'Bot Delta'];
-        const botName = botNames[this.nextBotNameIndex];
-        const botId = `bot-${Date.now()}-${this.nextBotNameIndex}`;
+        // Generate unique bot ID and pick name from available bag
+        if (this.availableBotNames.size === 0) {
+            this.logger.warn('Cannot add bot - no bot names available');
+            return { success: false, error: 'NO_BOT_NAMES_AVAILABLE' };
+        }
 
-        // Increment the index for next bot (cycles 0 → 1 → 2 → 3 → 0...)
-        this.nextBotNameIndex = (this.nextBotNameIndex + 1) % 4;
+        // Get first available name from the bag
+        const botName = this.availableBotNames.values().next().value as string;
+        this.availableBotNames.delete(botName);
+        const botId = `bot-${Date.now()}-${botName.replace('Bot ', '').toLowerCase()}`;
 
         // Add bot to game
         const success = this.game.addPlayer(botId, botName);
@@ -322,6 +325,8 @@ export class Room {
             return { success: true, botId, botName };
         }
 
+        // If failed, return name to bag
+        this.availableBotNames.add(botName);
         return { success: false, error: 'FAILED_TO_ADD' };
     }
 
@@ -360,6 +365,12 @@ export class Room {
         this.game.removePlayer(botId);
         this.playerIPs.delete(botId);
 
+        // Return bot name to the available pool (extract base name without "was X" suffix)
+        const baseName = bot.name.split(' (was ')[0];
+        if (['Bot Alpha', 'Bot Beta', 'Bot Gamma', 'Bot Delta'].includes(baseName)) {
+            this.availableBotNames.add(baseName);
+        }
+
         this.logger.info('Bot removed from room', {
             botId,
             botName: bot.name,
@@ -392,11 +403,13 @@ export class Room {
             return { success: false, error: 'ALREADY_BOT' };
         }
 
-        // Generate bot ID with unique timestamp
-        const botNames = ['Bot Alpha', 'Bot Beta', 'Bot Gamma', 'Bot Delta'];
-        const botName = botNames[this.nextBotNameIndex];
-        const botId = `bot-${Date.now()}-${this.nextBotNameIndex}`;
-        this.nextBotNameIndex = (this.nextBotNameIndex + 1) % 4;
+        // Generate bot ID with unique timestamp - use name from bag
+        if (this.availableBotNames.size === 0) {
+            return { success: false, error: 'NO_BOT_NAMES_AVAILABLE' };
+        }
+        const botName = this.availableBotNames.values().next().value as string;
+        this.availableBotNames.delete(botName);
+        const botId = `bot-${Date.now()}-${botName.replace('Bot ', '').toLowerCase()}`;
 
         // Replace player ID in the game's player array
         const playerIndex = this.game.players.findIndex(p => p.id === playerId);
@@ -433,6 +446,53 @@ export class Room {
             phase: this.game.gameState.phase
         });
 
+        // Check if all players are now bots - if so, stop the game
+        const allBots = this.game.players.every(p => p.id.startsWith('bot-'));
+        if (allBots) {
+            this.logger.warn('All players are now bots - stopping game');
+            this.io.emit('GAME_MESSAGE', 'Game stopped: All human players have left the room.');
+
+            // Reset to lobby state
+            this.game.gameState.phase = 'lobby';
+            this.game.gameState.pot = [];
+            this.game.gameState.bid = 170;
+            this.game.gameState.callerId = null;
+            this.game.gameState.trumpSuit = null;
+            this.game.gameState.friendCards = [];
+            this.game.disconnectedPlayers.clear();
+
+            // Clear player hands and reset state
+            this.game.players.forEach(p => {
+                p.hand = [];
+                p.hasPassed = false;
+                p.pointsWon = 0;
+                p.team = 'unknown';
+            });
+
+            // Return all bot names to the bag
+            this.game.players.forEach(p => {
+                const baseName = p.name.split(' (was ')[0];
+                if (['Bot Alpha', 'Bot Beta', 'Bot Gamma', 'Bot Delta'].includes(baseName)) {
+                    this.availableBotNames.add(baseName);
+                }
+            });
+
+            // Remove all bots from the room
+            const botIds = this.game.players.filter(p => p.id.startsWith('bot-')).map(p => p.id);
+            botIds.forEach(id => {
+                this.game.players = this.game.players.filter(p => p.id !== id);
+                this.playerIPs.delete(id);
+            });
+        }
+
         return { success: true };
+    }
+
+    /**
+     * Check if all players in the room are bots
+     */
+    isAllBots(): boolean {
+        if (this.game.players.length === 0) return false;
+        return this.game.players.every(p => p.id.startsWith('bot-'));
     }
 }
