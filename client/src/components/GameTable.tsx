@@ -20,10 +20,14 @@ const suitColors: Record<Suit, string> = {
 interface GameTableProps {
   gameState: GameState;
   playerId: string;
+  isHost: boolean;
   onBid: (amount: number) => void;
   onSelectTrump: (suit: Suit, friends: any[]) => void;
   onPlayCard: (card: ICard) => void;
   onStartGame: () => void;
+  onAddBot?: () => void;
+  onRemoveBot?: (botId: string) => void;
+  onExitRoom?: () => void;
 }
 
 const TrumpSelectionModal: React.FC<{ onSelect: (suit: Suit, friends: any[]) => void }> = ({ onSelect }) => {
@@ -143,8 +147,20 @@ const TrumpSelectionModal: React.FC<{ onSelect: (suit: Suit, friends: any[]) => 
 };
 
 
-export const GameTable: React.FC<GameTableProps> = ({ gameState, playerId, onBid, onSelectTrump, onPlayCard, onStartGame }) => {
+export const GameTable: React.FC<GameTableProps> = ({ 
+  gameState, 
+  playerId, 
+  isHost,
+  onBid, 
+  onSelectTrump, 
+  onPlayCard, 
+  onStartGame,
+  onAddBot,
+  onRemoveBot,
+  onExitRoom
+}) => {
   const me = gameState.players.find(p => p.id === playerId);
+  const [showExitConfirm, setShowExitConfirm] = React.useState(false);
   
   if (!me) return <div className="flex items-center justify-center h-screen text-white font-inter">Loading...</div>;
 
@@ -261,12 +277,42 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, playerId, onBid
         {gameState.phase === 'lobby' && (
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
                 <h2 className="text-2xl font-bold mb-4">Waiting for players... ({gameState.players.length}/5)</h2>
+                
+                {/* Bot Controls - Host Only */}
+                {isHost && (
+                  <div className="mb-4 space-y-3">
+                    <div className="flex gap-2 justify-center">
+                      <button 
+                        onClick={onAddBot}
+                        disabled={gameState.players.length >= 5}
+                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                      >
+                        🤖 Add Bot
+                      </button>
+                    </div>
+                    
+                    {/* List of bots with remove buttons */}
+                    {gameState.players.filter(p => p.id.startsWith('bot-')).length > 0 && (
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {gameState.players.filter(p => p.id.startsWith('bot-')).map(bot => (
+                          <button
+                            key={bot.id}
+                            onClick={() => onRemoveBot?.(bot.id)}
+                            className="bg-red-600/80 hover:bg-red-700 text-white px-3 py-1 rounded text-sm flex items-center gap-1 transition-colors"
+                          >
+                            ✕ {bot.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 {gameState.players.length >= 5 && (
-                     <button onClick={onStartGame} className="bg-yellow-500 text-black px-6 py-3 rounded-lg font-bold">
+                     <button onClick={onStartGame} className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-3 rounded-lg font-bold transition-colors">
                          Start Game
                      </button>
                 )}
-                {/* Note: I need to pass onStartGame prop or handle it via socket in App */}
             </div>
         )}
 
@@ -306,7 +352,50 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, playerId, onBid
             </div>
         )}
       </div>
-      <div className="absolute bottom-2 right-2 text-xs text-white/30">v1.3</div>
+
+      {/* Exit Room Button - visible during game (not lobby or ended) */}
+      {gameState.phase !== 'lobby' && gameState.phase !== 'ended' && onExitRoom && (
+        <button 
+          onClick={() => setShowExitConfirm(true)}
+          className="absolute top-4 right-4 z-40 bg-red-600/80 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
+        >
+          🚪 Exit Room
+        </button>
+      )}
+
+      {/* Exit Confirmation Modal */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-xl shadow-2xl text-white max-w-md text-center border border-red-500/30">
+            <h2 className="text-2xl font-bold mb-4 text-red-400">⚠️ Exit Game?</h2>
+            
+            <p className="text-gray-300 mb-6">
+              If you leave now, <span className="font-bold text-yellow-400">a bot will take your place</span> and play on your behalf. 
+              You won't be able to rejoin this game.
+            </p>
+            
+            <div className="flex gap-4 justify-center">
+              <button 
+                onClick={() => setShowExitConfirm(false)}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  setShowExitConfirm(false);
+                  onExitRoom?.();
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
+              >
+                Yes, Exit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="absolute bottom-2 right-2 text-xs text-white/30">v1.4</div>
     </div>
   );
 };
