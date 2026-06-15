@@ -213,15 +213,15 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ## 🙏 Acknowledgments
 
-- Built with ❤️ by [Your Name]
+- Built with ❤️ by [Rushil Mital]
 - Game rules based on traditional Dhaiso card game
 - UI inspired by modern card game applications
 
 ## 📞 Contact
 
-- GitHub Issues: [Report bugs or request features](https://github.com/yourusername/dhaiso/issues)
-- Email: your.email@example.com
+- GitHub Issues: [Report bugs or request features](https://github.com/rushil1510/dhaiso/issues)
+- Email: rushilmital003@gmail.com
 
 ---
 
-**Made with TypeScript and lots of ☕**
+
