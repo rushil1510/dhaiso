@@ -1,260 +1,72 @@
-# 🚀 Dhaiso Deployment Guide
+# Deployment Guide
 
-## Deployment Strategy
-
-- **Frontend**: Vercel (React/Vite app)
-- **Backend**: Render.com (Node.js with WebSocket support)
+This guide details the steps to deploy the Dhaiso application to production. The recommended strategy is to host the frontend on Vercel and the backend on Render (or any platform supporting persistent WebSocket connections).
 
 ---
 
-## Prerequisites
+## Architecture Overview
 
-1. ✅ GitHub account
-2. ✅ Vercel account (sign up at [vercel.com](https://vercel.com) with GitHub)
-3. ✅ Render account (sign up at [render.com](https://render.com) with GitHub)
-4. ✅ Push your code to GitHub
-
----
-
-## Step 1: Push to GitHub
-
-If you haven't already:
-
-```bash
-# Initialize git (if not done)
-git init
-git add .
-git commit -m "Initial commit - Dhaiso card game"
-
-# Create a new repository on GitHub, then:
-git remote add origin https://github.com/YOUR_USERNAME/dhaiso.git
-git branch -M main
-git push -u origin main
+```
+┌──────────────────┐               WebSocket (CORS)                ┌──────────────────┐
+│  Vite Frontend   │ ◄───────────────────────────────────────────► │  Node.js Server  │
+│  (Hosted: Vercel)│                                               │ (Hosted: Render) │
+└──────────────────┘                                               └──────────────────┘
 ```
 
 ---
 
-## Step 2: Deploy Backend to Render
+## 1. Backend Deployment (Render)
 
-### 2.1 Create Web Service
+Deploy the backend to Render as a **Web Service**.
 
-1. Go to [render.com](https://render.com) and log in
-2. Click **"New +"** → **"Web Service"**
-3. Connect your GitHub repository
-4. Select your `dhaiso` repository
+### Configuration Parameters
+Configure the Web Service with the following details:
 
-### 2.2 Configure Service
+- **Root Directory**: `server`
+- **Environment**: `Node`
+- **Build Command**: `npm install && npm run build`
+- **Start Command**: `npm start`
+- **Instance Type**: Free (or higher)
 
-Fill in the following settings:
+### Environment Variables
+Configure these variables in the Render environment settings:
 
-| Setting | Value |
-|---------|-------|
-| **Name** | `dhaiso-backend` (or your preferred name) |
-| **Root Directory** | `server` |
-| **Environment** | `Node` |
-| **Build Command** | `npm install && npm run build` |
-| **Start Command** | `npm start` |
-| **Instance Type** | `Free` |
+| Variable | Recommended Value | Description |
+| :--- | :--- | :--- |
+| `NODE_ENV` | `production` | Enables production optimizations. |
+| `FRONTEND_URL` | `https://your-app.vercel.app` | The URL of your deployed frontend (update after Vercel deployment). |
+| `PORT` | `3000` | Port for the Express server (injected automatically by Render). |
 
-### 2.3 Add Environment Variables
-
-In the "Environment" section, add:
-
-| Key | Value |
-|-----|-------|
-| `NODE_ENV` | `production` |
-| `FRONTEND_URL` | (leave empty for now, we'll update after deploying frontend) |
-
-### 2.4 Deploy
-
-1. Click **"Create Web Service"**
-2. Wait for deployment (takes 2-3 minutes)
-3. **Copy your backend URL** - it will look like: `https://dhaiso-backend.onrender.com`
-
-> ⚠️ **Important**: Render free tier spins down after 15 minutes of inactivity. First request after spin-down takes ~30 seconds to wake up.
+*Note: On Render's Free tier, the service spins down after 15 minutes of inactivity. The first request after a spin-down will take approximately 30 seconds to wake up.*
 
 ---
 
-## Step 3: Deploy Frontend to Vercel
+## 2. Frontend Deployment (Vercel)
 
-### 3.1 Update Environment Variable
+Deploy the frontend to Vercel via the Vercel Dashboard.
 
-Before deploying, update `client/.env.production` with your Render backend URL:
-
-```bash
-# Edit client/.env.production
-VITE_BACKEND_URL=https://dhaiso-backend.onrender.com
-```
-
-Replace `dhaiso-backend.onrender.com` with your actual Render URL from Step 2.4.
-
-### 3.2 Deploy via Vercel CLI
-
-```bash
-# Install Vercel CLI globally
-npm install -g vercel
-
-# Navigate to client directory
-cd client
-
-# Login to Vercel
-vercel login
-
-# Deploy
-vercel
-
-# Follow the prompts:
-# ? Set up and deploy "~/Documents/VibeCoding/dhaiso/client"? [Y/n] y
-# ? Which scope do you want to deploy to? [Your account]
-# ? Link to existing project? [y/N] n
-# ? What's your project's name? dhaiso
-# ? In which directory is your code located? ./
-# ? Want to override the settings? [y/N] n
-```
-
-### 3.3 Deploy to Production
-
-After the preview deployment succeeds:
-
-```bash
-vercel --prod
-```
-
-**Copy your frontend URL** - it will look like: `https://dhaiso.vercel.app`
-
-### 3.4 Alternative: Deploy via Vercel Dashboard
-
-1. Go to [vercel.com/dashboard](https://vercel.com/dashboard)
-2. Click **"Add New..."** → **"Project"**
-3. Import your GitHub repository
-4. Configure:
-   - **Framework Preset**: Vite
+### Configuration Parameters
+1. Import your GitHub repository into Vercel.
+2. Configure the following project settings:
+   - **Framework Preset**: `Vite`
    - **Root Directory**: `client`
    - **Build Command**: `npm run build`
    - **Output Directory**: `dist`
-5. Add Environment Variable:
-   - **Name**: `VITE_BACKEND_URL`
-   - **Value**: `https://dhaiso-backend.onrender.com` (your Render URL)
-6. Click **"Deploy"**
+   - **Install Command**: `npm install`
+
+### Environment Variables
+Add the following key-value pair under Environment Variables:
+
+| Variable | Value | Description |
+| :--- | :--- | :--- |
+| `VITE_BACKEND_URL` | `https://your-backend.onrender.com` | The URL of your deployed Render service. |
 
 ---
 
-## Step 4: Update Backend CORS
+## 3. Post-Deployment Verification
 
-Now that you have your Vercel frontend URL, update the backend:
-
-1. Go to your Render dashboard
-2. Select your `dhaiso-backend` service
-3. Go to **"Environment"** tab
-4. Add/Update environment variable:
-   - **Key**: `FRONTEND_URL`
-   - **Value**: `https://dhaiso.vercel.app` (your Vercel URL)
-5. Click **"Save Changes"**
-6. Service will automatically redeploy
-
----
-
-## Step 5: Test Your Deployment
-
-1. Open your Vercel URL: `https://dhaiso.vercel.app`
-2. Open 5 browser tabs (or different devices)
-3. Join as different players
-4. Start a game!
-
-### Troubleshooting
-
-**If connection fails:**
-
-1. Open browser console (F12)
-2. Check for CORS errors
-3. Verify backend URL in frontend is correct
-4. Check Render logs for backend errors
-5. Ensure backend is awake (first request takes ~30s on free tier)
-
-**Check backend logs:**
-- Go to Render dashboard → Your service → "Logs" tab
-
----
-
-## Environment Variables Summary
-
-### Frontend (Vercel)
-```
-VITE_BACKEND_URL=https://dhaiso-backend.onrender.com
-```
-
-### Backend (Render)
-```
-NODE_ENV=production
-FRONTEND_URL=https://dhaiso.vercel.app
-```
-
----
-
-## Future Deployments
-
-### Update Frontend
-```bash
-cd client
-git add .
-git commit -m "Update frontend"
-git push
-
-# Vercel auto-deploys on push to main branch
-# Or manually: vercel --prod
-```
-
-### Update Backend
-```bash
-cd server
-git add .
-git commit -m "Update backend"
-git push
-
-# Render auto-deploys on push to main branch
-```
-
----
-
-## Monitoring
-
-### Vercel Dashboard
-- View deployments: [vercel.com/dashboard](https://vercel.com/dashboard)
-- Check build logs
-- View analytics
-
-### Render Dashboard
-- View service status: [dashboard.render.com](https://dashboard.render.com)
-- Check logs
-- Monitor uptime
-
----
-
-## Cost Breakdown
-
-| Service | Tier | Cost | Limitations |
-|---------|------|------|-------------|
-| Vercel | Free | $0 | 100GB bandwidth/month, unlimited deployments |
-| Render | Free | $0 | Spins down after 15 min inactivity, 750 hours/month |
-
----
-
-## Upgrading (Optional)
-
-If you want to avoid the spin-down delay:
-
-**Render Paid Plan**: $7/month
-- No spin-down
-- Always-on service
-- Better performance
-
----
-
-## URLs
-
-After deployment, save these:
-
-- **Frontend**: `https://dhaiso.vercel.app`
-- **Backend**: `https://dhaiso-backend.onrender.com`
-
-Share the frontend URL with friends to play! 🎮
+### CORS Configuration
+Ensure that the client and server URLs match. If you encounter handshake failures:
+1. Open the browser developer console (F12) and inspect the network requests.
+2. Confirm the server's `FRONTEND_URL` environment variable matches your Vercel deployment URL exactly (without a trailing slash).
+3. Confirm the client's `VITE_BACKEND_URL` environment variable matches your Render URL exactly.

@@ -1,227 +1,107 @@
-# 🎴 Dhaiso - Multiplayer Card Game
+# Dhaiso
 
-A real-time multiplayer card game built with React, Node.js, and Socket.IO. Dhaiso is a strategic trick-taking game for exactly 5 players.
+Dhaiso is a real-time multiplayer trick-taking card game designed for exactly 5 players. Built with a React frontend and a Node.js/Socket.IO backend, it features a server-authoritative state model, automated bot takeover for disconnected players, and a responsive circular table layout.
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactjs.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-43853D?style=flat&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Socket.io](https://img.shields.io/badge/Socket.io-black?style=flat&logo=socket.io&badgeColor=010101)](https://socket.io/)
+## Features
 
-## 🎮 Live Demo
+- **Real-Time Multiplayer**: Bidirectional synchronization using Socket.IO.
+- **Server-Authoritative Validation**: All game logic, turn enforcement, and card play rules are validated on the backend.
+- **Circular Game Table**: Responsive frontend layout replicating a physical card table.
+- **Bot Integration**: Hosts can add bots to fill tables, and active players are automatically replaced by bots if they disconnect mid-game.
+- **Multi-Room Support**: Play multiple isolated games concurrently via unique room codes.
 
-[Play Dhaiso](https://your-deployed-url.vercel.app) (Coming soon)
-
-## 📋 Table of Contents
-
-- [About](#about)
-- [Quick Start](#quick-start)
-- [Game Rules](#game-rules)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Development](#development)
-- [Contributing](#contributing)
-- [Deployment](#deployment)
-- [License](#license)
-
-## 🎯 About
-
-Dhaiso is a traditional trick-taking card game where players bid, select trumps, and compete to win tricks worth points. One player becomes the "caller" who selects trump and friend cards, forming a team against the remaining players.
-
-**Key Features:**
-- ⚡ Real-time multiplayer with WebSockets
-- 🎨 Modern UI with Tailwind CSS
-- 🔒 Type-safe with TypeScript
-- 🎲 Strategic gameplay with bidding and trump selection
-- 📱 Responsive design
-
-## 🚀 Quick Start
+## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js (v18 or higher)
 - npm or yarn
 
 ### Installation
 
-1. **Clone the repository**
-```bash
-git clone https://github.com/yourusername/dhaiso.git
-cd dhaiso
-```
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/rushil1510/dhaiso.git
+   cd dhaiso
+   ```
 
-2. **Install dependencies**
-```bash
-# Install client dependencies
-cd client
-npm install
+2. Install dependencies:
+   ```bash
+   # Frontend
+   cd client && npm install
 
-# Install server dependencies
-cd ../server
-npm install
-```
+   # Backend
+   cd ../server && npm install
+   ```
 
-3. **Start development servers**
+### Running Locally
 
-Terminal 1 (Backend):
-```bash
-cd server
-npm run dev
-```
+To run the application locally, start both the server and client dev servers:
 
-Terminal 2 (Frontend):
-```bash
-cd client
-npm run dev
-```
+1. **Start the backend server:**
+   ```bash
+   cd server
+   npm run dev
+   ```
 
-4. **Open the game**
+2. **Start the frontend client:**
+   ```bash
+   cd client
+   npm run dev
+   ```
 
-Navigate to `http://localhost:5173` in 5 different browser tabs/windows.
+3. **Open the game:**
+   Navigate to `http://localhost:5173`. Open up to 5 tabs/windows (or use bots) to start a game.
 
-## 🃏 Game Rules
-
-**Brief Overview:**
-- 5 players required
-- 40-card deck (no 2s, 3s, 4s)
-- Players bid on points they can win
-- Highest bidder selects trump suit and 2 "friend" cards
-- Friend card holders join caller's team
-- Must score at least the bid amount to win
-
-For complete rules, see [docs/GAME_MECHANICS.md](docs/GAME_MECHANICS.md)
-
-## 🛠️ Tech Stack
-
-**Frontend:**
-- React 18
-- TypeScript
-- Tailwind CSS
-- Socket.IO Client
-- Vite
-
-**Backend:**
-- Node.js
-- TypeScript
-- Express
-- Socket.IO
-- ts-node
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 dhaiso/
-├── client/                 # React frontend
+├── client/             # React/Vite frontend application
 │   ├── src/
-│   │   ├── components/    # React components
-│   │   │   ├── GameTable.tsx   # Main game UI
-│   │   │   ├── Lobby.tsx       # Player lobby
-│   │   │   └── Card.tsx        # Card component
-│   │   ├── types.ts       # TypeScript types
-│   │   └── App.tsx        # Root component
-│   ├── package.json
-│   └── vite.config.ts
-│
-├── server/                # Node.js backend
+│   │   ├── components/ # Lobby, GameTable, and Card components
+│   │   ├── types.ts    # Frontend type definitions
+│   │   └── App.tsx     # Socket connection & main layout
+├── server/             # Node.js/Express/Socket.IO backend application
 │   ├── src/
-│   │   ├── classes/      # Game logic classes
-│   │   │   ├── Game.ts        # Main game controller
-│   │   │   ├── Player.ts      # Player state
-│   │   │   ├── Card.ts        # Card logic
-│   │   │   └── Deck.ts        # Deck management
-│   │   ├── types.ts      # TypeScript types
-│   │   └── index.ts      # Server entry point
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── docs/                  # Documentation
-│   ├── GAME_MECHANICS.md  # Game rules
-│   ├── ARCHITECTURE.md    # Technical architecture
-│   └── game_flow.md       # Game flow diagram
-│
-├── CONTRIBUTING.md        # Contribution guidelines
-├── DEPLOYMENT.md         # Deployment guide
-└── README.md             # This file
+│   │   ├── classes/    # Core game loop, player, card, deck, and room models
+│   │   ├── services/   # Logger & room code generator utilities
+│   │   ├── index.ts    # Application entry point & socket event routing
+│   │   └── types.ts    # Backend type definitions
+├── docs/               # Technical and design documentation
+│   ├── ARCHITECTURE.md
+│   ├── GAME_MECHANICS.md
+│   └── ...
+├── CONTRIBUTING.md     # Code guidelines and contribution flow
+└── DEPLOYMENT.md       # Production deployment instructions
 ```
 
-## 💻 Development
+## Development & Verification
 
-### Running Tests
-
+### Code Verification
 ```bash
-# Client tests
-cd client
-npm test
-
-# Server tests
-cd server
-npm test
-```
-
-### Type Checking
-
-```bash
-# Check TypeScript in both projects
+# Type-check frontend & backend
 cd client && npx tsc --noEmit
 cd server && npx tsc --noEmit
 ```
 
-### Building for Production
-
+### Production Builds
 ```bash
-# Build client
-cd client
-npm run build
+# Build frontend
+cd client && npm run build
 
-# Build server
-cd server
-npm run build
+# Build backend
+cd server && npm run build
 ```
 
-## 🤝 Contributing
+## Documentation Directory
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
-- Code of conduct
-- Development workflow
-- Coding standards
-- How to submit pull requests
+For deeper insights into the project, refer to the following guides:
+- [Game Rules & Mechanics](docs/GAME_MECHANICS.md)
+- [System Architecture](docs/ARCHITECTURE.md)
+- [Deployment Guide](DEPLOYMENT.md)
+- [Contributing Guidelines](CONTRIBUTING.md)
 
-**Key Resources for Contributors:**
-- [Game Mechanics](docs/GAME_MECHANICS.md) - Understand the game
-- [Architecture Guide](docs/ARCHITECTURE.md) - Technical deep dive
-- [API Documentation](docs/API.md) - Socket events and data flow
+## License
 
-## 🚀 Deployment
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
-
-**Quick Deploy:**
-- Frontend: Vercel
-- Backend: Render.com
-
-## 📝 Future Improvements
-
-- [ ] Remove Socket.IO dependency for Vercel deployment ([See plan](docs/VERCEL_MIGRATION.md))
-- [ ] Add spectator mode
-- [ ] Game replay functionality
-- [ ] Mobile app (React Native)
-- [ ] AI opponents
-- [ ] Tournament mode
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details
-
-## 🙏 Acknowledgments
-
-- Built with ❤️ by [Rushil Mital]
-- Game rules based on traditional Dhaiso card game
-- UI inspired by modern card game applications
-
-## 📞 Contact
-
-- GitHub Issues: [Report bugs or request features](https://github.com/rushil1510/dhaiso/issues)
-- Email: rushilmital003@gmail.com
-
----
-
-
+This project is licensed under the MIT License.
