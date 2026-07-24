@@ -263,6 +263,16 @@ describe('Room', () => {
             expect(result1.botName).not.toBe(result2.botName);
             expect(room.getPlayerCount()).toBe(3);
         });
+
+        it('should allow a host to fill the remaining four seats with bots and start', () => {
+            const results = Array.from({ length: 4 }, () => room.addBot('socket-1'));
+
+            expect(results.every(result => result.success)).toBe(true);
+            expect(room.getPlayerCount()).toBe(5);
+            expect(room.getBots()).toHaveLength(4);
+            expect(room.startGame('socket-1')).toBe(true);
+            expect(room.getGame().gameState.phase).toBe('bidding');
+        });
     });
 
     describe('getBots', () => {
