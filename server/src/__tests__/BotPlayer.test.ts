@@ -45,42 +45,35 @@ describe('BotPlayer', () => {
     });
 
     describe('decideBid', () => {
-        it('should always return 0 (pass) with current strategy', () => {
+        it('should make an opening bid and stop at a weak hand ceiling', () => {
+            bot.hand = [
+                new Card('H', 'J'),
+                new Card('D', '5'),
+                new Card('C', '6'),
+            ];
+
+            expect(bot.decideBid(170)).toBe(175);
+            expect(bot.decideBid(175)).toBe(180);
+            expect(bot.decideBid(180)).toBe(0);
+        });
+
+        it('should bid higher with a strong, long suit', () => {
             bot.hand = [
                 new Card('H', 'A'),
                 new Card('H', 'K'),
                 new Card('H', 'Q'),
-            ];
-
-            expect(bot.decideBid(170)).toBe(0);
-            expect(bot.decideBid(180)).toBe(0);
-            expect(bot.decideBid(200)).toBe(0);
-        });
-
-        it('should pass even with very strong hand', () => {
-            // Give bot all Aces
-            bot.hand = [
-                new Card('H', 'A'),
-                new Card('D', 'A'),
-                new Card('C', 'A'),
-                new Card('S', 'A'),
+                new Card('H', 'J'),
                 new Card('H', 'K'),
             ];
 
-            expect(bot.decideBid(170)).toBe(0);
+            expect(bot.decideBid(185)).toBe(190);
+            expect(bot.decideBid(200)).toBe(0);
         });
 
-        it('should pass even with empty hand', () => {
+        it('should use the minimum ceiling with an empty hand', () => {
             bot.hand = [];
-            expect(bot.decideBid(170)).toBe(0);
-        });
-
-        it('should pass at any bid level', () => {
-            bot.hand = [new Card('H', 'K')];
-
-            expect(bot.decideBid(170)).toBe(0);
-            expect(bot.decideBid(250)).toBe(0);
-            expect(bot.decideBid(300)).toBe(0);
+            expect(bot.decideBid(170)).toBe(175);
+            expect(bot.decideBid(180)).toBe(0);
         });
     });
 
@@ -225,6 +218,38 @@ describe('BotPlayer', () => {
                 expect(card).not.toBeNull();
                 // Bot is void in Diamonds, can play anything
                 expect(['H', 'S', 'C']).toContain(card!.suit);
+            });
+
+            it('should use the lowest trump that can win when void in the lead suit', () => {
+                bot.hand = [
+                    new Card('H', '6'),
+                    new Card('H', 'K'),
+                    new Card('S', '5'),
+                ];
+
+                const pot = [
+                    { playerId: 'other', card: new Card('D', 'A') },
+                ];
+
+                const card = bot.decideCard(pot, trumpSuit);
+
+                expect(card).toMatchObject({ suit: 'H', rank: '6' });
+            });
+
+            it('should use the lowest card that can win while following suit', () => {
+                bot.hand = [
+                    new Card('D', '7'),
+                    new Card('D', 'K'),
+                    new Card('S', '5'),
+                ];
+
+                const pot = [
+                    { playerId: 'other', card: new Card('D', '6') },
+                ];
+
+                const card = bot.decideCard(pot, trumpSuit);
+
+                expect(card).toMatchObject({ suit: 'D', rank: '7' });
             });
         });
 
