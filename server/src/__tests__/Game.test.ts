@@ -275,6 +275,7 @@ describe('Game', () => {
 
             expect(game.gameState.phase).toBe('trump_selection');
             expect(game.gameState.callerId).toBe('p1');
+            expect(game.players.every(player => !player.hasPassed)).toBe(true);
         });
     });
 
@@ -702,6 +703,33 @@ describe('Game', () => {
         it('should start in bidding phase with first player turn', () => {
             expect(game.gameState.phase).toBe('bidding');
             expect(game.currentTurnIndex).toBe(0);
+        });
+
+        it('should have a bot caller select trump and friends after bidding completes', () => {
+            jest.useFakeTimers();
+            const selectTrumpSpy = jest.spyOn(game, 'handleSelectTrumpAndFriends');
+
+            game.gameState.bid = 175;
+            game.gameState.callerId = 'bot-4-3';
+            game.players[1].hasPassed = true;
+            game.players[2].hasPassed = true;
+            game.players[3].hasPassed = true;
+
+            game.handleBid('human-1', 0);
+
+            expect(game.gameState.phase).toBe('trump_selection');
+            expect(game.gameState.callerId).toBe('bot-4-3');
+
+            jest.advanceTimersByTime(2000);
+
+            expect(selectTrumpSpy).toHaveBeenCalledWith(
+                'bot-4-3',
+                expect.any(String),
+                expect.any(Array)
+            );
+            expect(game.gameState.trumpSuit).not.toBeNull();
+
+            jest.useRealTimers();
         });
     });
 });

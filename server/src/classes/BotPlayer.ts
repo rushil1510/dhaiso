@@ -30,20 +30,25 @@ export class BotPlayer extends Player {
 
     /**
      * Decide what to bid during bidding phase.
-     * Current strategy: Always pass (conservative)
+     * Strategy: Make measured five-point raises based on hand strength.
      * 
      * @param currentBid - The current highest bid
      * @returns 0 to pass, or a higher bid amount
      */
     decideBid(currentBid: number): number {
-        // Simple strategy: always pass
-        // Future: Could analyze hand strength and bid accordingly
+        const handStrength = this.calculateHandStrength();
+        const maximumBid = 180 + Math.min(25, Math.floor(handStrength / 8) * 5);
+        const bidAmount = currentBid < maximumBid ? currentBid + 5 : 0;
+
         this.logger.debug('Deciding bid', {
             currentBid,
-            handStrength: this.calculateHandStrength(),
-            decision: 'PASS'
+            handStrength,
+            maximumBid,
+            decision: bidAmount === 0 ? 'PASS' : 'BID',
+            bidAmount
         });
-        return 0; // Pass
+
+        return bidAmount;
     }
 
     /**
@@ -109,7 +114,7 @@ export class BotPlayer extends Player {
      * Decide which card to play during playing phase.
      * Strategy: 
      *   - Leading: Play lowest power non-trump card
-     *   - Following: Play lowest valid card
+     *   - Following: Play the lowest card that can win, otherwise conserve strength
      * 
      * @param pot - Current cards in the pot
      * @param trumpSuit - The trump suit for this game
@@ -141,13 +146,25 @@ export class BotPlayer extends Player {
             const suitCards = this.hand.filter(c => c.suit === leadSuit);
 
             if (suitCards.length > 0) {
-                // Play lowest card of lead suit
-                cardToPlay = suitCards.reduce((min, c) => c.power < min.power ? c : min);
-                reasoning = `Following ${leadSuit} with lowest card`;
+                const currentWinner = this.getWinningCard(pot, trumpSuit);
+                const winningCards = suitCards.filter(card => this.beats(card, currentWinner, leadSuit, trumpSuit));
+
+                cardToPlay = this.lowestCard(winningCards.length > 0 ? winningCards : suitCards);
+                reasoning = winningCards.length > 0
+                    ? `Following ${leadSuit} with lowest winning card`
+                    : `Following ${leadSuit} with lowest card`;
             } else {
-                // Can't follow suit - play lowest value card (minimize point loss)
-                cardToPlay = this.hand.reduce((min, c) => c.value < min.value ? c : min);
-                reasoning = `Void in ${leadSuit}, discarding lowest value`;
+                const currentWinner = this.getWinningCard(pot, trumpSuit);
+                const trumpCards = this.hand.filter(card => card.suit === trumpSuit);
+                const winningTrumps = trumpCards.filter(card => this.beats(card, currentWinner, leadSuit, trumpSuit));
+
+                if (winningTrumps.length > 0) {
+                    cardToPlay = this.lowestCard(winningTrumps);
+                    reasoning = `Void in ${leadSuit}, cutting with lowest winning trump`;
+                } else {
+                    cardToPlay = this.lowestCard(this.hand);
+                    reasoning = `Void in ${leadSuit}, discarding lowest card`;
+                }
             }
         }
 
@@ -168,17 +185,41 @@ export class BotPlayer extends Player {
      * @returns A score from 0-100 indicating hand strength
      */
     private calculateHandStrength(): number {
+        const rankStrength: Record<string, number> = {
+            '5': 0, '6': 0, '7': 0, '8': 0, '9': 0, '10': 1,
+            'J': 3, 'Q': 5, 'K': 7, 'A': 9
+        };
+        const suitCounts: Record<Suit, number> = { H: 0, D: 0, C: 0, S: 0 };
         let score = 0;
 
         for (const card of this.hand) {
-            // Add points for high cards
-            score += card.value;
-            // Add bonus for aces and kings
-            if (card.rank === 'A') score += 10;
-            if (card.rank === 'K') score += 5;
+            score += rankStrength[card.rank];
+            suitCounts[card.suit]++;
         }
 
-        // Normalize to 0-100 range (rough estimate)
-        return Math.min(100, score);
+        const longestSuit = Math.max(...Object.values(suitCounts));
+        return score + Math.max(0, longestSuit - 1) * 2;
+    }
+
+    private lowestCard(cards: Card[]): Card {
+        return cards.reduce((lowest, card) => card.power < lowest.power ? card : lowest);
+    }
+
+    private getWinningCard(pot: { playerId: string; card: ICard }[], trumpSuit: Suit): ICard {
+        const leadSuit = pot[0].card.suit;
+
+        return pot.slice(1).reduce((winner, entry) =>
+            this.beats(entry.card, winner, leadSuit, trumpSuit) ? entry.card : winner,
+        pot[0].card);
+    }
+
+    private beats(candidate: ICard, currentWinner: ICard, leadSuit: Suit, trumpSuit: Suit): boolean {
+        if (candidate.suit === trumpSuit) {
+            return currentWinner.suit !== trumpSuit || candidate.power > currentWinner.power;
+        }
+
+        return currentWinner.suit !== trumpSuit &&
+            candidate.suit === leadSuit &&
+            (currentWinner.suit !== leadSuit || candidate.power > currentWinner.power);
     }
 }

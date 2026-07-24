@@ -274,6 +274,9 @@ export class Game {
                 // Winner found
                 this.gameState.callerId = activeBidders[0].id;
                 this.gameState.phase = 'trump_selection';
+                this.currentTurnIndex = this.players.findIndex(p => p.id === activeBidders[0].id);
+                this.gameState.currentTurn = this.currentTurnIndex;
+                this.players.forEach(player => player.hasPassed = false);
 
                 this.logger.phaseChange('bidding', 'trump_selection', 'Bidding complete - caller selected');
                 this.logger.info('Bidding winner determined', {
@@ -283,6 +286,7 @@ export class Game {
                 });
 
                 this.broadcastState();
+                this.checkAndTriggerBot();
                 return;
             }
             if (activeBidders.length === 0) {

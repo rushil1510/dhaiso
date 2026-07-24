@@ -252,6 +252,7 @@ function App() {
         gameState={gameState} 
         playerId={playerId}
         isHost={roomInfo.isHost}
+        actionError={error}
         onBid={handleBid}
         onSelectTrump={handleSelectTrump}
         onPlayCard={handlePlayCard}

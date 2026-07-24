@@ -21,6 +21,7 @@ interface GameTableProps {
   gameState: GameState;
   playerId: string;
   isHost: boolean;
+  actionError?: string;
   onBid: (amount: number) => void;
   onSelectTrump: (suit: Suit, friends: any[]) => void;
   onPlayCard: (card: ICard) => void;
@@ -151,6 +152,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   gameState, 
   playerId, 
   isHost,
+  actionError,
   onBid, 
   onSelectTrump, 
   onPlayCard, 
@@ -161,6 +163,26 @@ export const GameTable: React.FC<GameTableProps> = ({
 }) => {
   const me = gameState.players.find(p => p.id === playerId);
   const [showExitConfirm, setShowExitConfirm] = React.useState(false);
+  const cardSubmissionPending = React.useRef(false);
+  const isMyTurn = gameState.currentTurn === gameState.players.findIndex(p => p.id === playerId);
+  const canPlayCard = gameState.phase === 'playing' && isMyTurn;
+
+  React.useEffect(() => {
+    cardSubmissionPending.current = false;
+  }, [gameState.currentTurn, gameState.pot.length, gameState.phase]);
+
+  React.useEffect(() => {
+    if (actionError) {
+      cardSubmissionPending.current = false;
+    }
+  }, [actionError]);
+
+  const handleCardPlay = React.useCallback((card: ICard) => {
+    if (!canPlayCard || cardSubmissionPending.current) return;
+
+    cardSubmissionPending.current = true;
+    onPlayCard(card);
+  }, [canPlayCard, onPlayCard]);
   
   if (!me) return <div className="flex items-center justify-center h-screen text-white font-inter">Loading...</div>;
 
@@ -234,7 +256,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                     <div className="font-semibold text-xs md:text-sm truncate max-w-[70px] md:max-w-[115px] font-poppins" title={player.name}>{player.name}</div>
                     <div className="text-[10px] md:text-xs text-gray-300">{player.hand.filter(c => c === null).length + player.hand.filter(c => c !== null).length} Cards</div>
                     <div className="text-[10px] md:text-xs text-green-400 font-semibold">Score: {player.pointsWon || 0}</div>
-                    {player.hasPassed && <div className="text-red-400 font-bold text-xs bg-red-900/70 px-2 py-0.5 rounded-full">Passed</div>}
+                    {gameState.phase === 'bidding' && player.hasPassed && <div className="text-red-400 font-bold text-xs bg-red-900/70 px-2 py-0.5 rounded-full">Passed</div>}
                     {gameState.currentTurn === gameState.players.findIndex(p => p.id === player.id) && (
                         <div className="absolute -top-2 -right-2 w-5 h-5 bg-yellow-400 rounded-full animate-ping shadow-lg"></div>
                     )}
@@ -253,8 +275,8 @@ export const GameTable: React.FC<GameTableProps> = ({
             <Card 
               key={idx} 
               card={card} 
-              onClick={() => card && onPlayCard(card)}
-              className={gameState.currentTurn === gameState.players.findIndex(p => p.id === playerId) ? 'ring-2 ring-yellow-400' : ''}
+              onClick={card && canPlayCard ? () => handleCardPlay(card) : undefined}
+              className={canPlayCard ? 'ring-2 ring-yellow-400' : 'cursor-default'}
             />
           ))}
         </div>
