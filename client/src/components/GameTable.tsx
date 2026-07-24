@@ -256,7 +256,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                     <div className="font-semibold text-xs md:text-sm truncate max-w-[70px] md:max-w-[115px] font-poppins" title={player.name}>{player.name}</div>
                     <div className="text-[10px] md:text-xs text-gray-300">{player.hand.filter(c => c === null).length + player.hand.filter(c => c !== null).length} Cards</div>
                     <div className="text-[10px] md:text-xs text-green-400 font-semibold">Score: {player.pointsWon || 0}</div>
-                    {player.hasPassed && <div className="text-red-400 font-bold text-xs bg-red-900/70 px-2 py-0.5 rounded-full">Passed</div>}
+                    {gameState.phase === 'bidding' && player.hasPassed && <div className="text-red-400 font-bold text-xs bg-red-900/70 px-2 py-0.5 rounded-full">Passed</div>}
                     {gameState.currentTurn === gameState.players.findIndex(p => p.id === player.id) && (
                         <div className="absolute -top-2 -right-2 w-5 h-5 bg-yellow-400 rounded-full animate-ping shadow-lg"></div>
                     )}

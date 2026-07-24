@@ -275,6 +275,7 @@ describe('Game', () => {
 
             expect(game.gameState.phase).toBe('trump_selection');
             expect(game.gameState.callerId).toBe('p1');
+            expect(game.players.every(player => !player.hasPassed)).toBe(true);
         });
     });
 
