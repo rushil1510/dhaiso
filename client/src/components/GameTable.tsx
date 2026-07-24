@@ -21,6 +21,7 @@ interface GameTableProps {
   gameState: GameState;
   playerId: string;
   isHost: boolean;
+  actionError?: string;
   onBid: (amount: number) => void;
   onSelectTrump: (suit: Suit, friends: any[]) => void;
   onPlayCard: (card: ICard) => void;
@@ -151,6 +152,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   gameState, 
   playerId, 
   isHost,
+  actionError,
   onBid, 
   onSelectTrump, 
   onPlayCard, 
@@ -168,6 +170,12 @@ export const GameTable: React.FC<GameTableProps> = ({
   React.useEffect(() => {
     cardSubmissionPending.current = false;
   }, [gameState.currentTurn, gameState.pot.length, gameState.phase]);
+
+  React.useEffect(() => {
+    if (actionError) {
+      cardSubmissionPending.current = false;
+    }
+  }, [actionError]);
 
   const handleCardPlay = React.useCallback((card: ICard) => {
     if (!canPlayCard || cardSubmissionPending.current) return;
