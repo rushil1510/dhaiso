@@ -161,6 +161,20 @@ export const GameTable: React.FC<GameTableProps> = ({
 }) => {
   const me = gameState.players.find(p => p.id === playerId);
   const [showExitConfirm, setShowExitConfirm] = React.useState(false);
+  const cardSubmissionPending = React.useRef(false);
+  const isMyTurn = gameState.currentTurn === gameState.players.findIndex(p => p.id === playerId);
+  const canPlayCard = gameState.phase === 'playing' && isMyTurn;
+
+  React.useEffect(() => {
+    cardSubmissionPending.current = false;
+  }, [gameState.currentTurn, gameState.pot.length, gameState.phase]);
+
+  const handleCardPlay = React.useCallback((card: ICard) => {
+    if (!canPlayCard || cardSubmissionPending.current) return;
+
+    cardSubmissionPending.current = true;
+    onPlayCard(card);
+  }, [canPlayCard, onPlayCard]);
   
   if (!me) return <div className="flex items-center justify-center h-screen text-white font-inter">Loading...</div>;
 
@@ -253,8 +267,8 @@ export const GameTable: React.FC<GameTableProps> = ({
             <Card 
               key={idx} 
               card={card} 
-              onClick={() => card && onPlayCard(card)}
-              className={gameState.currentTurn === gameState.players.findIndex(p => p.id === playerId) ? 'ring-2 ring-yellow-400' : ''}
+              onClick={card && canPlayCard ? () => handleCardPlay(card) : undefined}
+              className={canPlayCard ? 'ring-2 ring-yellow-400' : 'cursor-default'}
             />
           ))}
         </div>
